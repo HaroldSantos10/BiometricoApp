@@ -23,5 +23,6 @@
         public TimeOnly HoraSalidaSabado { get; set; } = new TimeOnly(11, 0);
         public bool TrabajaSabado { get; set; } = false;
         public bool Activo { get; set; } = true;
+        public bool TurnoNocturno { get; set; } = false;
     }
 }

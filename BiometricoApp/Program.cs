@@ -12,6 +12,7 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 
 builder.Services.AddScoped<BiometricoApp.Services.CsvParserService>();
 builder.Services.AddScoped<BiometricoApp.Services.EmpleadoImportService>();
+builder.Services.AddScoped<BiometricoApp.Services.AttendanceCalculatorService>();
 
 var app = builder.Build();
 

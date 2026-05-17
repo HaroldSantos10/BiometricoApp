@@ -1,0 +1,242 @@
+﻿@page "/reporte"
+@using BiometricoApp.Models
+@using BiometricoApp.Data
+@using BiometricoApp.Services
+@using Microsoft.EntityFrameworkCore
+@inject AppDbContext DB
+@inject AttendanceCalculatorService Calculador
+@rendermode InteractiveServer
+
+<PageTitle>Reporte de Asistencia</PageTitle>
+
+<div style="padding:1rem;">
+    <h2>Reporte de Asistencia</h2>
+
+    <div style="background:#f5f5f5; padding:1rem; border-radius:8px; margin-bottom:1.5rem; display:flex; gap:1rem; flex-wrap:wrap; align-items:flex-end;">
+        <div>
+            <label style="font-size:13px; color:#555; display:block; margin-bottom:4px;">Empleado</label>
+            <select @bind="empleadoSeleccionadoId" style="padding:0.5rem; border:1px solid #ddd; border-radius:6px; min-width:250px;">
+                <option value="0">-- Seleccionar empleado --</option>
+                @foreach (var emp in empleados)
+                {
+                    <option value="@emp.Id">@emp.Nombre — @emp.Departamento</option>
+                }
+            </select>
+        </div>
+        <div>
+            <label style="font-size:13px; color:#555; display:block; margin-bottom:4px;">Mes</label>
+            <select @bind="mesSeleccionado" style="padding:0.5rem; border:1px solid #ddd; border-radius:6px;">
+                @for (int m = 1; m <= 12; m++)
+                {
+                    <option value="@m">@NombreMes(m)</option>
+                }
+            </select>
+        </div>
+        <div>
+            <label style="font-size:13px; color:#555; display:block; margin-bottom:4px;">Año</label>
+            <input type="number" @bind="anioSeleccionado" min="2020" max="2030"
+                   style="padding:0.5rem; border:1px solid #ddd; border-radius:6px; width:90px;" />
+        </div>
+        <button @onclick="GenerarReporte"
+                style="padding:0.5rem 1.5rem; background:#1a73e8; color:white; border:none; border-radius:6px; cursor:pointer;">
+            Generar reporte
+        </button>
+    </div>
+
+    @if (resultado != null)
+    {
+        <div style="margin-bottom:1rem; display:flex; gap:1rem; flex-wrap:wrap;">
+            <div style="background:white; border:1px solid #ddd; border-radius:8px; padding:1rem; min-width:150px; text-align:center;">
+                <div style="font-size:24px; font-weight:600; color:@(resultado.TieneTardanzasCriticas ? "#e53935" : "#137333");">
+                    @AttendanceCalculatorService.FormatearMinutos(resultado.TotalMinutosTarde)
+                </div>
+                <div style="font-size:12px; color:#666; margin-top:4px;">Total tardanzas</div>
+            </div>
+            <div style="background:white; border:1px solid #ddd; border-radius:8px; padding:1rem; min-width:150px; text-align:center;">
+                <div style="font-size:24px; font-weight:600; color:#1a73e8;">
+                    @AttendanceCalculatorService.FormatearMinutos(resultado.TotalMinutosExtraAntes)
+                </div>
+                <div style="font-size:12px; color:#666; margin-top:4px;">Extra entrada</div>
+            </div>
+            <div style="background:white; border:1px solid #ddd; border-radius:8px; padding:1rem; min-width:150px; text-align:center;">
+                <div style="font-size:24px; font-weight:600; color:#1a73e8;">
+                    @AttendanceCalculatorService.FormatearMinutos(resultado.TotalMinutosExtraDespues)
+                </div>
+                <div style="font-size:12px; color:#666; margin-top:4px;">Extra salida</div>
+            </div>
+            <div style="background:white; border:1px solid #ddd; border-radius:8px; padding:1rem; min-width:150px; text-align:center;">
+                <div style="font-size:24px; font-weight:600; color:#f0a500;">
+                    @AttendanceCalculatorService.FormatearMinutos(resultado.TotalMinutosExtra)
+                </div>
+                <div style="font-size:12px; color:#666; margin-top:4px;">Total extra</div>
+            </div>
+            @if (resultado.TotalMinutosDomingo > 0)
+            {
+                <div style="background:#fff8e1; border:1px solid #ffe082; border-radius:8px; padding:1rem; min-width:150px; text-align:center;">
+                    <div style="font-size:24px; font-weight:600; color:#f57c00;">
+                        @AttendanceCalculatorService.FormatearMinutos(resultado.TotalMinutosDomingo)
+                    </div>
+                    <div style="font-size:12px; color:#666; margin-top:4px;">Extra domingos</div>
+                </div>
+            }
+        </div>
+
+        @if (resultado.TieneTardanzasCriticas)
+        {
+            <div style="background:#fce8e6; border:1px solid #f5c6c6; border-radius:8px; padding:0.75rem 1rem; margin-bottom:1rem; color:#c5221f;">
+                ⚠️ Este empleado supera los 15 minutos acumulados de tardanza en el mes.
+            </div>
+        }
+
+        <div style="overflow-x:auto;">
+            <table style="width:100%; border-collapse:collapse; font-size:13px;">
+                <thead>
+                    <tr style="background:#1a73e8; color:white;">
+                        <th style="padding:8px; text-align:left;">Fecha</th>
+                        <th style="padding:8px; text-align:left;">Día</th>
+                        <th style="padding:8px; text-align:center;">Entrada</th>
+                        <th style="padding:8px; text-align:center;">Salida</th>
+                        <th style="padding:8px; text-align:center;">Tardanza</th>
+                        <th style="padding:8px; text-align:center;">Extra entrada</th>
+                        <th style="padding:8px; text-align:center;">Extra salida</th>
+                        <th style="padding:8px; text-align:left;">Observación</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @{
+                        int tardanzaAcumulada = 0;
+                    }
+                    @foreach (var dia in resultado.Dias)
+                    {
+                        tardanzaAcumulada += dia.MinutosTarde;
+                        var esCritico = tardanzaAcumulada > 15;
+                        var bgColor = dia.EsDomingo ? "#fff8e1" :
+                                      dia.EsSabado ? "#f3f0ff" :
+                                      esCritico && dia.MinutosTarde > 0 ? "#fce8e6" : "white";
+
+                        <tr style="border-bottom:1px solid #eee; background:@bgColor;">
+                            <td style="padding:8px;">@dia.Fecha.ToString("dd/MM/yyyy")</td>
+                            <td style="padding:8px;">
+                                @dia.DiaSemana
+                                @if (dia.EsDomingo)
+                                {
+                                    <span style="background:#fff8e1; color:#f57c00; font-size:11px; padding:1px 6px; border-radius:4px; margin-left:4px;">DOM</span>
+                                }
+                            </td>
+                            <td style="padding:8px; text-align:center;">
+                                @(dia.EntradaReal?.ToString("HH:mm") ?? "-")
+                            </td>
+                            <td style="padding:8px; text-align:center;">
+                                @(dia.SalidaReal?.ToString("HH:mm") ?? "-")
+                            </td>
+                            <td style="padding:8px; text-align:center;">
+                                @if (dia.MinutosTarde > 0)
+                                {
+                                    <span style="color:#c5221f; font-weight:500;">
+                                        @AttendanceCalculatorService.FormatearMinutos(dia.MinutosTarde)
+                                    </span>
+                                }
+                                else
+                                {
+
+                                    <span>-</span>
+                                }
+                            </td>
+                            <td style="padding:8px; text-align:center;">
+                                @if (dia.MinutosExtraAntes > 0)
+                                {
+                                    <span style="color:#1a73e8; font-weight:500;">
+                                        @AttendanceCalculatorService.FormatearMinutos(dia.MinutosExtraAntes)
+                                    </span>
+                                }
+                                else
+                                {
+
+                                    <span>-</span>
+                                }
+                            </td>
+                            <td style="padding:8px; text-align:center;">
+                                @if (dia.MinutosExtraDespues > 0)
+                                {
+                                    <span style="color:#1a73e8; font-weight:500;">
+                                        @AttendanceCalculatorService.FormatearMinutos(dia.MinutosExtraDespues)
+                                    </span>
+                                }
+                                else
+                                {
+
+                                    <span>-</span>
+                                }
+                            </td>
+                            <td style="padding:8px; font-size:12px; color:#666;">@dia.Observacion</td>
+                        </tr>
+                    }
+                </tbody>
+                <tfoot>
+                    <tr style="background:#f5f5f5; font-weight:600; border-top:2px solid #ddd;">
+                        <td colspan="4" style="padding:8px;">TOTAL DEL MES</td>
+                        <td style="padding:8px; text-align:center; color:@(resultado.TieneTardanzasCriticas ? "#e53935" : "#333");">
+                            @AttendanceCalculatorService.FormatearMinutos(resultado.TotalMinutosTarde)
+                        </td>
+                        <td style="padding:8px; text-align:center; color:#1a73e8;">
+                            @AttendanceCalculatorService.FormatearMinutos(resultado.TotalMinutosExtraAntes)
+                        </td>
+                        <td style="padding:8px; text-align:center; color:#1a73e8;">
+                            @AttendanceCalculatorService.FormatearMinutos(resultado.TotalMinutosExtraDespues)
+                        </td>
+                        <td style="padding:8px;"></td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    }
+</div>
+
+@code {
+    private List<Empleado> empleados = new();
+    private int empleadoSeleccionadoId = 0;
+    private int mesSeleccionado = DateTime.Now.Month;
+    private int anioSeleccionado = DateTime.Now.Year;
+    private ResultadoEmpleado? resultado;
+
+    protected override async Task OnInitializedAsync()
+    {
+        empleados = await DB.Empleados
+            .Where(e => e.Activo)
+            .OrderBy(e => e.Nombre)
+            .ToListAsync();
+    }
+
+    private async Task GenerarReporte()
+    {
+        if (empleadoSeleccionadoId == 0) return;
+
+        var empleado = await DB.Empleados.FindAsync(empleadoSeleccionadoId);
+        if (empleado == null) return;
+
+        var registros = await DB.RegistrosBiometricos
+            .Where(r => r.EmpleadoId == empleadoSeleccionadoId
+                && r.Fecha.Month == mesSeleccionado
+                && r.Fecha.Year == anioSeleccionado)
+            .ToListAsync();
+
+        resultado = Calculador.Calcular(empleado, registros);
+    }
+
+    private string NombreMes(int mes) => mes switch
+    {
+        1 => "Enero",
+        2 => "Febrero",
+        3 => "Marzo",
+        4 => "Abril",
+        5 => "Mayo",
+        6 => "Junio",
+        7 => "Julio",
+        8 => "Agosto",
+        9 => "Septiembre",
+        10 => "Octubre",
+        11 => "Noviembre",
+        12 => "Diciembre",
+        _ => ""
+    };
+}

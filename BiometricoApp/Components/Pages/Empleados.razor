@@ -10,17 +10,138 @@
 
 <PageTitle>Gestión de Empleados</PageTitle>
 
-<div style="padding: 1rem;">
+@if (mostrarModal && empleadoEditando != null)
+{
+    <div style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:1000; display:flex; align-items:center; justify-content:center;">
+        <div style="background:white; border-radius:12px; padding:2rem; width:90%; max-width:700px; max-height:90vh; overflow-y:auto;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
+                <h3 style="margin:0;">Editar Empleado</h3>
+                <button @onclick="CerrarModal" style="background:none; border:none; font-size:1.5rem; cursor:pointer; color:#666;">✕</button>
+            </div>
+
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
+                <div>
+                    <label style="font-size:13px; color:#555;">Código Biométrico</label>
+                    <input @bind="empleadoEditando.CodigoEmpleado" style="width:100%; padding:0.5rem; margin-top:4px; border:1px solid #ddd; border-radius:6px;" />
+                </div>
+                <div>
+                    <label style="font-size:13px; color:#555;">Nombre completo</label>
+                    <input @bind="empleadoEditando.Nombre" style="width:100%; padding:0.5rem; margin-top:4px; border:1px solid #ddd; border-radius:6px;" />
+                </div>
+                <div>
+                    <label style="font-size:13px; color:#555;">DUI</label>
+                    <input @bind="empleadoEditando.DUI" style="width:100%; padding:0.5rem; margin-top:4px; border:1px solid #ddd; border-radius:6px;" />
+                </div>
+                <div>
+                    <label style="font-size:13px; color:#555;">Departamento</label>
+                    <input @bind="empleadoEditando.Departamento" style="width:100%; padding:0.5rem; margin-top:4px; border:1px solid #ddd; border-radius:6px;" />
+                </div>
+                <div>
+                    <label style="font-size:13px; color:#555;">Cargo</label>
+                    <input @bind="empleadoEditando.Cargo" style="width:100%; padding:0.5rem; margin-top:4px; border:1px solid #ddd; border-radius:6px;" />
+                </div>
+                <div>
+                    <label style="font-size:13px; color:#555;">Tipo de Contrato</label>
+                    <input @bind="empleadoEditando.TipoContrato" style="width:100%; padding:0.5rem; margin-top:4px; border:1px solid #ddd; border-radius:6px;" />
+                </div>
+                <div>
+                    <label style="font-size:13px; color:#555;">Correo</label>
+                    <input @bind="empleadoEditando.Correo" style="width:100%; padding:0.5rem; margin-top:4px; border:1px solid #ddd; border-radius:6px;" />
+                </div>
+                <div>
+                    <label style="font-size:13px; color:#555;">Teléfono</label>
+                    <input @bind="empleadoEditando.Telefono" style="width:100%; padding:0.5rem; margin-top:4px; border:1px solid #ddd; border-radius:6px;" />
+                </div>
+                <div style="grid-column:span 2;">
+                    <label style="font-size:13px; color:#555;">Dirección</label>
+                    <input @bind="empleadoEditando.Direccion" style="width:100%; padding:0.5rem; margin-top:4px; border:1px solid #ddd; border-radius:6px;" />
+                </div>
+                <div>
+                    <label style="font-size:13px; color:#555;">Salario</label>
+                    <input type="number" @bind="empleadoEditando.Salario" style="width:100%; padding:0.5rem; margin-top:4px; border:1px solid #ddd; border-radius:6px;" />
+                </div>
+                <div>
+                    <label style="font-size:13px; color:#555;">Género</label>
+                    <select @bind="empleadoEditando.Genero" style="width:100%; padding:0.5rem; margin-top:4px; border:1px solid #ddd; border-radius:6px;">
+                        <option value="">-- Seleccionar --</option>
+                        <option value="M">Masculino</option>
+                        <option value="F">Femenino</option>
+                    </select>
+                </div>
+                <div>
+                    <label style="font-size:13px; color:#555;">Fecha de Ingreso</label>
+                    <input type="date" value="@fechaIngresoStr"
+                           @oninput="e => fechaIngresoStr = e.Value?.ToString() ?? string.Empty"
+                           style="width:100%; padding:0.5rem; margin-top:4px; border:1px solid #ddd; border-radius:6px;" />
+                </div>
+                <div>
+                    <label style="font-size:13px; color:#555;">Fecha de Nacimiento</label>
+                    <input type="date" value="@fechaNacimientoStr"
+                           @oninput="e => fechaNacimientoStr = e.Value?.ToString() ?? string.Empty"
+                           style="width:100%; padding:0.5rem; margin-top:4px; border:1px solid #ddd; border-radius:6px;" />
+                </div>
+            </div>
+
+            <div style="background:#f0f7ff; border-radius:8px; padding:1rem; margin-top:1.5rem;">
+                <h5 style="margin:0 0 1rem 0; color:#1a73e8;">⏰ Horario de trabajo</h5>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
+                    <div>
+                        <label style="font-size:13px; color:#555;">Entrada Lun-Vie</label>
+                        <input type="time" value="@horaEntradaStr"
+                               @oninput="e => horaEntradaStr = e.Value?.ToString() ?? string.Empty"
+                               style="width:100%; padding:0.5rem; margin-top:4px; border:1px solid #ddd; border-radius:6px;" />
+                    </div>
+                    <div>
+                        <label style="font-size:13px; color:#555;">Salida Lun-Vie</label>
+                        <input type="time" value="@horaSalidaStr"
+                               @oninput="e => horaSalidaStr = e.Value?.ToString() ?? string.Empty"
+                               style="width:100%; padding:0.5rem; margin-top:4px; border:1px solid #ddd; border-radius:6px;" />
+                    </div>
+                    <div style="grid-column:span 2; display:flex; align-items:center; gap:8px; padding:0.5rem 0;">
+                        <input type="checkbox" @bind="empleadoEditando.TrabajaSabado" id="modalSabado" style="width:18px; height:18px; cursor:pointer;" />
+                        <label for="modalSabado" style="cursor:pointer; font-weight:500;">Trabaja sábado</label>
+                    </div>
+                    @if (empleadoEditando.TrabajaSabado)
+                    {
+                        <div>
+                            <label style="font-size:13px; color:#555;">Entrada Sábado</label>
+                            <input type="time" value="@horaEntradaSabadoStr"
+                                   @oninput="e => horaEntradaSabadoStr = e.Value?.ToString() ?? string.Empty"
+                                   style="width:100%; padding:0.5rem; margin-top:4px; border:1px solid #ddd; border-radius:6px;" />
+                        </div>
+                        <div>
+                            <label style="font-size:13px; color:#555;">Salida Sábado</label>
+                            <input type="time" value="@horaSalidaSabadoStr"
+                                   @oninput="e => horaSalidaSabadoStr = e.Value?.ToString() ?? string.Empty"
+                                   style="width:100%; padding:0.5rem; margin-top:4px; border:1px solid #ddd; border-radius:6px;" />
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <div style="display:flex; gap:0.5rem; margin-top:1.5rem; justify-content:flex-end;">
+                <button @onclick="CerrarModal"
+                        style="padding:0.5rem 1.5rem; background:#ccc; border:none; border-radius:6px; cursor:pointer;">
+                    Cancelar
+                </button>
+                <button @onclick="GuardarModal"
+                        style="padding:0.5rem 1.5rem; background:#1a73e8; color:white; border:none; border-radius:6px; cursor:pointer;">
+                    Guardar cambios
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
+<div style="padding:1rem;">
     <h2>Gestión de Empleados</h2>
 
     <div style="display:flex; align-items:center; gap:1rem; margin-bottom:1rem; flex-wrap:wrap;">
-        <button @onclick="MostrarFormulario"
+        <button @onclick="NuevoEmpleado"
                 style="padding:0.5rem 1rem; background:#1a73e8; color:white; border:none; border-radius:6px; cursor:pointer;">
             + Nuevo Empleado
         </button>
-
         <InputFile OnChange="ArchivoSeleccionado" accept=".csv" />
-
         @if (archivoListo)
         {
             <button @onclick="ProcesarArchivo"
@@ -39,46 +160,43 @@
     {
         <div style="background:#f5f5f5; padding:1rem; border-radius:8px; margin-bottom:1.5rem;">
             <h4>Vista previa — @previstaImport.Count empleados detectados</h4>
-            <p style="font-size:13px; color:#555;">Revisa los datos antes de confirmar.</p>
-            <table style="width:100%; border-collapse:collapse; font-size:12px; overflow-x:auto; display:block;">
-                <thead>
-                    <tr style="background:#e8f0fe;">
-                        <th style="padding:6px; text-align:left; white-space:nowrap;">Nombre</th>
-                        <th style="padding:6px; text-align:left; white-space:nowrap;">DUI</th>
-                        <th style="padding:6px; text-align:left; white-space:nowrap;">Departamento</th>
-                        <th style="padding:6px; text-align:left; white-space:nowrap;">Cargo</th>
-                        <th style="padding:6px; text-align:left; white-space:nowrap;">Contrato</th>
-                        <th style="padding:6px; text-align:left; white-space:nowrap;">Género</th>
-                        <th style="padding:6px; text-align:left; white-space:nowrap;">Teléfono</th>
-                        <th style="padding:6px; text-align:left; white-space:nowrap;">Correo</th>
-                        <th style="padding:6px; text-align:left; white-space:nowrap;">Salario</th>
-                        <th style="padding:6px; text-align:left; white-space:nowrap;">F. Ingreso</th>
-                        <th style="padding:6px; text-align:left; white-space:nowrap;">F. Nacimiento</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach (var emp in previstaImport)
-                    {
-                        <tr style="border-bottom:1px solid #ddd;">
-                            <td style="padding:6px; white-space:nowrap;">@emp.Nombre</td>
-                            <td style="padding:6px; white-space:nowrap;">@emp.DUI</td>
-                            <td style="padding:6px; white-space:nowrap;">@emp.Departamento</td>
-                            <td style="padding:6px; white-space:nowrap;">@emp.Cargo</td>
-                            <td style="padding:6px; white-space:nowrap;">@emp.TipoContrato</td>
-                            <td style="padding:6px; white-space:nowrap;">@emp.Genero</td>
-                            <td style="padding:6px; white-space:nowrap;">@emp.Telefono</td>
-                            <td style="padding:6px; white-space:nowrap;">@emp.Correo</td>
-                            <td style="padding:6px; white-space:nowrap;">$@emp.Salario.ToString("N2")</td>
-                            <td style="padding:6px; white-space:nowrap;">
-                                @(emp.FechaIngreso == default ? "-" : emp.FechaIngreso.ToString("dd/MM/yyyy"))
-                            </td>
-                            <td style="padding:6px; white-space:nowrap;">
-                                @(emp.FechaNacimiento == default ? "-" : emp.FechaNacimiento.ToString("dd/MM/yyyy"))
-                            </td>
+            <div style="overflow-x:auto;">
+                <table style="width:100%; border-collapse:collapse; font-size:12px;">
+                    <thead>
+                        <tr style="background:#e8f0fe;">
+                            <th style="padding:6px; text-align:left; white-space:nowrap;">Nombre</th>
+                            <th style="padding:6px; text-align:left; white-space:nowrap;">DUI</th>
+                            <th style="padding:6px; text-align:left; white-space:nowrap;">Departamento</th>
+                            <th style="padding:6px; text-align:left; white-space:nowrap;">Cargo</th>
+                            <th style="padding:6px; text-align:left; white-space:nowrap;">Contrato</th>
+                            <th style="padding:6px; text-align:left; white-space:nowrap;">Género</th>
+                            <th style="padding:6px; text-align:left; white-space:nowrap;">Teléfono</th>
+                            <th style="padding:6px; text-align:left; white-space:nowrap;">Correo</th>
+                            <th style="padding:6px; text-align:left; white-space:nowrap;">Salario</th>
+                            <th style="padding:6px; text-align:left; white-space:nowrap;">F. Ingreso</th>
+                            <th style="padding:6px; text-align:left; white-space:nowrap;">F. Nacimiento</th>
                         </tr>
-                    }
-                </tbody>
-            </table>
+                    </thead>
+                    <tbody>
+                        @foreach (var emp in previstaImport)
+                        {
+                            <tr style="border-bottom:1px solid #ddd;">
+                                <td style="padding:6px; white-space:nowrap;">@emp.Nombre</td>
+                                <td style="padding:6px; white-space:nowrap;">@emp.DUI</td>
+                                <td style="padding:6px; white-space:nowrap;">@emp.Departamento</td>
+                                <td style="padding:6px; white-space:nowrap;">@emp.Cargo</td>
+                                <td style="padding:6px; white-space:nowrap;">@emp.TipoContrato</td>
+                                <td style="padding:6px; white-space:nowrap;">@emp.Genero</td>
+                                <td style="padding:6px; white-space:nowrap;">@emp.Telefono</td>
+                                <td style="padding:6px; white-space:nowrap;">@emp.Correo</td>
+                                <td style="padding:6px; white-space:nowrap;">$@emp.Salario.ToString("N2")</td>
+                                <td style="padding:6px; white-space:nowrap;">@(emp.FechaIngreso == default ? "-" : emp.FechaIngreso.ToString("dd/MM/yyyy"))</td>
+                                <td style="padding:6px; white-space:nowrap;">@(emp.FechaNacimiento == default ? "-" : emp.FechaNacimiento.ToString("dd/MM/yyyy"))</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
             <div style="margin-top:1rem; display:flex; gap:0.5rem;">
                 <button @onclick="ConfirmarImportCsv"
                         style="padding:0.5rem 1.5rem; background:#34a853; color:white; border:none; border-radius:6px; cursor:pointer;">
@@ -92,215 +210,240 @@
         </div>
     }
 
-    @if (mostrarForm)
+    @if (!string.IsNullOrEmpty(mensaje))
     {
-        <div style="background:#f5f5f5; padding:1.5rem; border-radius:8px; margin-bottom:1.5rem;">
-            <h4>@(empleadoEditando.Id == 0 ? "Nuevo Empleado" : "Editar Empleado")</h4>
+        <p style="color:green; margin-bottom:1rem;">@mensaje</p>
+    }
 
-            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:1rem;">
-                <div>
-                    <label>Código Empleado</label>
-                    <input @bind="empleadoEditando.CodigoEmpleado" style="width:100%; padding:0.4rem; margin-top:4px;" />
-                </div>
-                <div>
-                    <label>Nombre completo</label>
-                    <input @bind="empleadoEditando.Nombre" style="width:100%; padding:0.4rem; margin-top:4px;" />
-                </div>
-                <div>
-                    <label>DUI</label>
-                    <input @bind="empleadoEditando.DUI" style="width:100%; padding:0.4rem; margin-top:4px;" />
-                </div>
-                <div>
-                    <label>Correo</label>
-                    <input @bind="empleadoEditando.Correo" style="width:100%; padding:0.4rem; margin-top:4px;" />
-                </div>
-                <div>
-                    <label>Teléfono</label>
-                    <input @bind="empleadoEditando.Telefono" style="width:100%; padding:0.4rem; margin-top:4px;" />
-                </div>
-                <div>
-                    <label>Departamento</label>
-                    <input @bind="empleadoEditando.Departamento" style="width:100%; padding:0.4rem; margin-top:4px;" />
-                </div>
-                <div>
-                    <label>Cargo</label>
-                    <input @bind="empleadoEditando.Cargo" style="width:100%; padding:0.4rem; margin-top:4px;" />
-                </div>
-                <div>
-                    <label>Cargo Académico</label>
-                    <input @bind="empleadoEditando.CargoAcademico" style="width:100%; padding:0.4rem; margin-top:4px;" />
-                </div>
-                <div>
-                    <label>Género</label>
-                    <select @bind="empleadoEditando.Genero" style="width:100%; padding:0.4rem; margin-top:4px;">
-                        <option value="">-- Seleccionar --</option>
-                        <option value="M">Masculino</option>
-                        <option value="F">Femenino</option>
-                    </select>
-                </div>
-                <div>
-                    <label>Tipo de Contrato</label>
-                    <input @bind="empleadoEditando.TipoContrato" style="width:100%; padding:0.4rem; margin-top:4px;" />
-                </div>
-                <div>
-                    <label>Salario</label>
-                    <input type="number" @bind="empleadoEditando.Salario" style="width:100%; padding:0.4rem; margin-top:4px;" />
-                </div>
-                <div>
-                    <label>Fecha de Ingreso</label>
-                    <input type="date" value="@fechaIngresoStr"
-                           @oninput="e => fechaIngresoStr = e.Value?.ToString() ?? string.Empty"
-                           style="width:100%; padding:0.4rem; margin-top:4px;" />
-                </div>
-                <div>
-                    <label>Fecha de Nacimiento</label>
-                    <input type="date" value="@fechaNacimientoStr"
-                           @oninput="e => fechaNacimientoStr = e.Value?.ToString() ?? string.Empty"
-                           style="width:100%; padding:0.4rem; margin-top:4px;" />
-                </div>
-                <div>
-                    <label>Dirección</label>
-                    <input @bind="empleadoEditando.Direccion" style="width:100%; padding:0.4rem; margin-top:4px;" />
-                </div>
-            </div>
-
-            <hr style="margin:1rem 0;" />
-            <h5>Horario de trabajo</h5>
-            <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:1rem;">
-                <div>
-                    <label>Hora entrada (Lun-Vie)</label>
-                    <input type="time" value="@horaEntradaStr"
-                           @oninput="e => horaEntradaStr = e.Value?.ToString() ?? string.Empty"
-                           style="width:100%; padding:0.4rem; margin-top:4px;" />
-                </div>
-                <div>
-                    <label>Hora salida (Lun-Vie)</label>
-                    <input type="time" value="@horaSalidaStr"
-                           @oninput="e => horaSalidaStr = e.Value?.ToString() ?? string.Empty"
-                           style="width:100%; padding:0.4rem; margin-top:4px;" />
-                </div>
-                <div style="display:flex; align-items:center; gap:8px; margin-top:1.5rem;">
-                    <input type="checkbox" @bind="empleadoEditando.TrabajaSabado" id="sabado" />
-                    <label for="sabado">Trabaja sábado</label>
-                </div>
-                @if (empleadoEditando.TrabajaSabado)
+    <div style="overflow-x:auto;">
+        <div style="display:flex; gap:1rem; margin-bottom:1rem; flex-wrap:wrap; align-items:center;">
+            <div style="position:relative;">
+                <input @bind="filtroNombre" @bind:event="oninput" placeholder="🔍 Buscar por nombre..."
+                       style="padding:0.5rem 0.75rem; border:1px solid #ddd; border-radius:6px; width:250px; font-size:14px;" />
+                @if (!string.IsNullOrEmpty(filtroNombre))
                 {
-                    <div>
-                        <label>Hora entrada (Sábado)</label>
-                        <input type="time" value="@horaEntradaSabadoStr"
-                               @oninput="e => horaEntradaSabadoStr = e.Value?.ToString() ?? string.Empty"
-                               style="width:100%; padding:0.4rem; margin-top:4px;" />
-                    </div>
-                    <div>
-                        <label>Hora salida (Sábado)</label>
-                        <input type="time" value="@horaSalidaSabadoStr"
-                               @oninput="e => horaSalidaSabadoStr = e.Value?.ToString() ?? string.Empty"
-                               style="width:100%; padding:0.4rem; margin-top:4px;" />
-                    </div>
+                    <button @onclick="() => filtroNombre = string.Empty"
+                            style="position:absolute; right:8px; top:50%; transform:translateY(-50%); background:none; border:none; cursor:pointer; color:#999; font-size:16px;">
+                        ✕
+                    </button>
                 }
             </div>
 
-            <div style="margin-top:1rem; display:flex; gap:0.5rem;">
-                <button @onclick="GuardarEmpleado"
-                        style="padding:0.5rem 1.5rem; background:#1a73e8; color:white; border:none; border-radius:6px; cursor:pointer;">
-                    Guardar
-                </button>
-                <button @onclick="CancelarFormulario"
-                        style="padding:0.5rem 1.5rem; background:#ccc; border:none; border-radius:6px; cursor:pointer;">
-                    Cancelar
-                </button>
-            </div>
+            <select @bind="filtroDepartamento"
+                    style="padding:0.5rem 0.75rem; border:1px solid #ddd; border-radius:6px; font-size:14px; min-width:200px;">
+                <option value="">Todos los departamentos</option>
+                @foreach (var depto in Departamentos)
+                {
+                    <option value="@depto">@depto</option>
+                }
+            </select>
 
-            @if (!string.IsNullOrEmpty(mensaje))
+            @if (!string.IsNullOrEmpty(filtroDepartamento) || !string.IsNullOrEmpty(filtroNombre))
             {
-                <p style="color:green; margin-top:0.5rem;">@mensaje</p>
+                <button @onclick="() => { filtroDepartamento = string.Empty; filtroNombre = string.Empty; }"
+                        style="padding:0.5rem 0.75rem; background:#f5f5f5; border:1px solid #ddd; border-radius:6px; cursor:pointer; font-size:13px;">
+                    Limpiar filtros
+                </button>
             }
+
+            <span style="color:#666; font-size:13px; margin-left:auto;">
+                Mostrando @EmpleadosFiltrados.Count() de @empleados.Count empleados
+            </span>
         </div>
-    }
 
-    <table style="width:100%; border-collapse:collapse; font-size:14px;">
-        <thead>
-            <tr style="background:#1a73e8; color:white;">
-                <th style="padding:8px; text-align:left;">Código</th>
-                <th style="padding:8px; text-align:left;">Nombre</th>
-                <th style="padding:8px; text-align:left;">Departamento</th>
-                <th style="padding:8px; text-align:left;">Cargo</th>
-                <th style="padding:8px; text-align:left;">Entrada</th>
-                <th style="padding:8px; text-align:left;">Salida</th>
-                <th style="padding:8px; text-align:left;">Sábado</th>
-                <th style="padding:8px; text-align:left;">Acciones</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach (var emp in empleados)
-            {
-                <tr style="border-bottom:1px solid #ddd;">
-                    <td style="padding:8px;">@emp.CodigoEmpleado</td>
-                    <td style="padding:8px;">@emp.Nombre</td>
-                    <td style="padding:8px;">@emp.Departamento</td>
-                    <td style="padding:8px;">@emp.Cargo</td>
-                    <td style="padding:8px;">@emp.HoraEntrada.ToString("HH:mm")</td>
-                    <td style="padding:8px;">@emp.HoraSalida.ToString("HH:mm")</td>
-                    <td style="padding:8px;">@(emp.TrabajaSabado ? "Sí" : "No")</td>
-                    <td style="padding:8px;">
-                        <button @onclick="() => EditarEmpleado(emp)"
-                                style="padding:4px 10px; background:#f0a500; color:white; border:none; border-radius:4px; cursor:pointer; margin-right:4px;">
-                            Editar
-                        </button>
-                        <button @onclick="() => EliminarEmpleado(emp.Id)"
-                                style="padding:4px 10px; background:#e53935; color:white; border:none; border-radius:4px; cursor:pointer;">
-                            Eliminar
-                        </button>
-                    </td>
+        <table style="width:100%; border-collapse:collapse; font-size:13px;">
+            <thead>
+                <tr style="background:#1a73e8; color:white;">
+                    <th style="padding:8px; text-align:left;">Nombre</th>
+                    <th style="padding:8px; text-align:left;">Departamento</th>
+                    <th style="padding:8px; text-align:left;">Cargo</th>
+                    <th style="padding:8px; text-align:center;">Entrada L-V</th>
+                    <th style="padding:8px; text-align:center;">Salida L-V</th>
+                    <th style="padding:8px; text-align:center;">Ent. Sáb</th>
+                    <th style="padding:8px; text-align:center;">Sal. Sáb</th>
+                    <th style="padding:8px; text-align:center;">Sábado</th>
+                    <th style="padding:8px; text-align:center;">Código Bio.</th>
+                    <th style="padding:8px; text-align:center;">Acciones</th>
                 </tr>
-            }
-        </tbody>
-    </table>
+            </thead>
+            <tbody>
+                @foreach (var emp in EmpleadosFiltrados)
+                {
+                    @if (filaEditandoId == emp.Id)
+                    {
+                        <tr style="background:#fffde7; border-bottom:1px solid #ddd;">
+                            <td style="padding:4px 8px;">
+                                <span style="font-size:13px;">@emp.Nombre</span>
+                            </td>
+                            <td style="padding:4px 8px;">@emp.Departamento</td>
+                            <td style="padding:4px 8px;">@emp.Cargo</td>
+                            <td style="padding:4px 8px; text-align:center;">
+                                <input type="time" value="@filaEntradaStr"
+                                       @oninput="e => filaEntradaStr = e.Value?.ToString() ?? string.Empty"
+                                       style="padding:3px; border:1px solid #aaa; border-radius:4px; width:90px;" />
+                            </td>
+                            <td style="padding:4px 8px; text-align:center;">
+                                <input type="time" value="@filaSalidaStr"
+                                       @oninput="e => filaSalidaStr = e.Value?.ToString() ?? string.Empty"
+                                       style="padding:3px; border:1px solid #aaa; border-radius:4px; width:90px;" />
+                            </td>
+                            <td style="padding:4px 8px; text-align:center;">
+                                <input type="time" value="@filaEntradaSabStr"
+                                       @oninput="e => filaEntradaSabStr = e.Value?.ToString() ?? string.Empty"
+                                       style="padding:3px; border:1px solid #aaa; border-radius:4px; width:90px;" />
+                            </td>
+                            <td style="padding:4px 8px; text-align:center;">
+                                <input type="time" value="@filaSalidaSabStr"
+                                       @oninput="e => filaSalidaSabStr = e.Value?.ToString() ?? string.Empty"
+                                       style="padding:3px; border:1px solid #aaa; border-radius:4px; width:90px;" />
+                            </td>
+                            <td style="padding:4px 8px; text-align:center;">
+                                <input type="checkbox" @bind="filaTrabajaSabado" style="width:16px; height:16px;" />
+                            </td>
+                            <td style="padding:4px 8px; text-align:center;">
+                                <input @bind="filaCodigoEmpleado"
+                                       style="padding:3px; border:1px solid #aaa; border-radius:4px; width:100px;" />
+                            </td>
+                            <td style="padding:4px 8px; text-align:center; white-space:nowrap;">
+                                <button @onclick="() => GuardarFila(emp.Id)"
+                                        style="padding:3px 10px; background:#34a853; color:white; border:none; border-radius:4px; cursor:pointer; margin-right:4px;">
+                                    ✓
+                                </button>
+                                <button @onclick="CancelarFila"
+                                        style="padding:3px 10px; background:#ccc; border:none; border-radius:4px; cursor:pointer;">
+                                    ✕
+                                </button>
+                            </td>
+                        </tr>
+                    }
+                    else
+                    {
+                        <tr style="border-bottom:1px solid #ddd;" @onmouseenter="() => filaHover = emp.Id" @onmouseleave="() => filaHover = 0">
+                            <td style="padding:8px;">@emp.Nombre</td>
+                            <td style="padding:8px;">@emp.Departamento</td>
+                            <td style="padding:8px;">@emp.Cargo</td>
+                            <td style="padding:8px; text-align:center;">@emp.HoraEntrada.ToString("HH:mm")</td>
+                            <td style="padding:8px; text-align:center;">@emp.HoraSalida.ToString("HH:mm")</td>
+                            <td style="padding:8px; text-align:center;">@emp.HoraEntradaSabado.ToString("HH:mm")</td>
+                            <td style="padding:8px; text-align:center;">@emp.HoraSalidaSabado.ToString("HH:mm")</td>
+                            <td style="padding:8px; text-align:center;">
+                                <span style="padding:2px 8px; border-radius:12px; font-size:12px;
+                                    background:@(emp.TrabajaSabado ? "#e6f4ea" : "#fce8e6");
+                                    color:@(emp.TrabajaSabado ? "#137333" : "#c5221f");">
+                                    @(emp.TrabajaSabado ? "Sí" : "No")
+                                </span>
+                            </td>
+                            <td style="padding:8px; text-align:center;">
+                                @if (!string.IsNullOrEmpty(emp.CodigoEmpleado))
+                                {
+                                    <span style="background:#e8f0fe; color:#1a73e8; padding:2px 8px; border-radius:4px; font-size:12px;">
+                                        @emp.CodigoEmpleado
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span style="color:#aaa; font-size:12px;">sin código</span>
+                                }
+                            </td>
+                            <td style="padding:8px; text-align:center; white-space:nowrap;">
+                                <button @onclick="() => EditarFila(emp)"
+                                        title="Edición rápida"
+                                        style="padding:4px 8px; background:#f0a500; color:white; border:none; border-radius:4px; cursor:pointer; margin-right:4px; font-size:12px;">
+                                    ✏️
+                                </button>
+                                <button @onclick="() => AbrirModal(emp)"
+                                        title="Edición completa"
+                                        style="padding:4px 8px; background:#1a73e8; color:white; border:none; border-radius:4px; cursor:pointer; margin-right:4px; font-size:12px;">
+                                    📋
+                                </button>
+                                <button @onclick="() => EliminarEmpleado(emp.Id)"
+                                        title="Eliminar"
+                                        style="padding:4px 8px; background:#e53935; color:white; border:none; border-radius:4px; cursor:pointer; font-size:12px;">
+                                    🗑️
+                                </button>
+                            </td>
+                        </tr>
+                    }
+                }
+            </tbody>
+        </table>
+    </div>
 </div>
 
 @code {
     private List<Empleado> empleados = new();
-    private Empleado empleadoEditando = new();
-    private bool mostrarForm = false;
     private string mensaje = string.Empty;
+    private string filtroDepartamento = string.Empty;
+    private string filtroNombre = string.Empty;
+    private int filaHover = 0;
 
-    // Variables importación
-    private List<Empleado> previstaImport = new();
-    private bool importando = false;
-    private bool archivoListo = false;
-    private string mensajeImport = string.Empty;
-    private IBrowserFile? archivoSeleccionado;
+
+    // filtro empleados
+    private IEnumerable<Empleado> EmpleadosFiltrados => empleados
+        .Where(e =>
+            (string.IsNullOrEmpty(filtroNombre) ||
+             e.Nombre.Contains(filtroNombre, StringComparison.OrdinalIgnoreCase)) &&
+            (string.IsNullOrEmpty(filtroDepartamento) ||
+             e.Departamento == filtroDepartamento))
+        .ToList();
+
+    // filtro departamentos
+    private IEnumerable<string> Departamentos => empleados
+        .Select(e => e.Departamento)
+        .Where(d => !string.IsNullOrEmpty(d))
+        .Distinct()
+        .OrderBy(d => d);
+
+
+    // Edición inline
+    private int filaEditandoId = 0;
+    private string filaEntradaStr = string.Empty;
+    private string filaSalidaStr = string.Empty;
+    private string filaEntradaSabStr = string.Empty;
+    private string filaSalidaSabStr = string.Empty;
+    private bool filaTrabajaSabado = false;
+    private string filaCodigoEmpleado = string.Empty;
+
+    // Modal completo
+    private bool mostrarModal = false;
+    private Empleado? empleadoEditando;
 
     private string horaEntradaStr
     {
-        get => empleadoEditando.HoraEntrada.ToString("HH:mm");
-        set { if (TimeOnly.TryParse(value, out var t)) empleadoEditando.HoraEntrada = t; }
+        get => empleadoEditando?.HoraEntrada.ToString("HH:mm") ?? "08:00";
+        set { if (empleadoEditando != null && TimeOnly.TryParse(value, out var t)) empleadoEditando.HoraEntrada = t; }
     }
     private string horaSalidaStr
     {
-        get => empleadoEditando.HoraSalida.ToString("HH:mm");
-        set { if (TimeOnly.TryParse(value, out var t)) empleadoEditando.HoraSalida = t; }
+        get => empleadoEditando?.HoraSalida.ToString("HH:mm") ?? "17:00";
+        set { if (empleadoEditando != null && TimeOnly.TryParse(value, out var t)) empleadoEditando.HoraSalida = t; }
     }
     private string horaEntradaSabadoStr
     {
-        get => empleadoEditando.HoraEntradaSabado.ToString("HH:mm");
-        set { if (TimeOnly.TryParse(value, out var t)) empleadoEditando.HoraEntradaSabado = t; }
+        get => empleadoEditando?.HoraEntradaSabado.ToString("HH:mm") ?? "07:00";
+        set { if (empleadoEditando != null && TimeOnly.TryParse(value, out var t)) empleadoEditando.HoraEntradaSabado = t; }
     }
     private string horaSalidaSabadoStr
     {
-        get => empleadoEditando.HoraSalidaSabado.ToString("HH:mm");
-        set { if (TimeOnly.TryParse(value, out var t)) empleadoEditando.HoraSalidaSabado = t; }
+        get => empleadoEditando?.HoraSalidaSabado.ToString("HH:mm") ?? "11:00";
+        set { if (empleadoEditando != null && TimeOnly.TryParse(value, out var t)) empleadoEditando.HoraSalidaSabado = t; }
     }
     private string fechaIngresoStr
     {
-        get => empleadoEditando.FechaIngreso == default ? "" : empleadoEditando.FechaIngreso.ToString("yyyy-MM-dd");
-        set { if (DateOnly.TryParse(value, out var d)) empleadoEditando.FechaIngreso = d; }
+        get => empleadoEditando?.FechaIngreso == default ? "" : empleadoEditando!.FechaIngreso.ToString("yyyy-MM-dd");
+        set { if (empleadoEditando != null && DateOnly.TryParse(value, out var d)) empleadoEditando.FechaIngreso = d; }
     }
     private string fechaNacimientoStr
     {
-        get => empleadoEditando.FechaNacimiento == default ? "" : empleadoEditando.FechaNacimiento.ToString("yyyy-MM-dd");
-        set { if (DateOnly.TryParse(value, out var d)) empleadoEditando.FechaNacimiento = d; }
+        get => empleadoEditando?.FechaNacimiento == default ? "" : empleadoEditando!.FechaNacimiento.ToString("yyyy-MM-dd");
+        set { if (empleadoEditando != null && DateOnly.TryParse(value, out var d)) empleadoEditando.FechaNacimiento = d; }
     }
+
+    // Importación CSV
+    private List<Empleado> previstaImport = new();
+    private bool archivoListo = false;
+    private string mensajeImport = string.Empty;
+    private IBrowserFile? archivoSeleccionado;
 
     protected override async Task OnInitializedAsync()
     {
@@ -309,36 +452,46 @@
 
     private async Task CargarEmpleados()
     {
-        empleados = await DB.Empleados.Where(e => e.Activo).ToListAsync();
+        empleados = await DB.Empleados.Where(e => e.Activo).OrderBy(e => e.Departamento).ThenBy(e => e.Nombre).ToListAsync();
     }
 
-    private void MostrarFormulario()
+    // ── Edición inline ──────────────────────────────────────
+    private void EditarFila(Empleado emp)
     {
-        empleadoEditando = new Empleado();
-        mostrarForm = true;
-        mensaje = string.Empty;
+        filaEditandoId = emp.Id;
+        filaEntradaStr = emp.HoraEntrada.ToString("HH:mm");
+        filaSalidaStr = emp.HoraSalida.ToString("HH:mm");
+        filaEntradaSabStr = emp.HoraEntradaSabado.ToString("HH:mm");
+        filaSalidaSabStr = emp.HoraSalidaSabado.ToString("HH:mm");
+        filaTrabajaSabado = emp.TrabajaSabado;
+        filaCodigoEmpleado = emp.CodigoEmpleado;
     }
 
-    private void CancelarFormulario()
+    private async Task GuardarFila(int id)
     {
-        mostrarForm = false;
-        mensaje = string.Empty;
-    }
+        var emp = await DB.Empleados.FindAsync(id);
+        if (emp == null) return;
 
-    private async Task GuardarEmpleado()
-    {
-        if (empleadoEditando.Id == 0)
-            DB.Empleados.Add(empleadoEditando);
-        else
-            DB.Empleados.Update(empleadoEditando);
+        if (TimeOnly.TryParse(filaEntradaStr, out var e)) emp.HoraEntrada = e;
+        if (TimeOnly.TryParse(filaSalidaStr, out var s)) emp.HoraSalida = s;
+        if (TimeOnly.TryParse(filaEntradaSabStr, out var es)) emp.HoraEntradaSabado = es;
+        if (TimeOnly.TryParse(filaSalidaSabStr, out var ss)) emp.HoraSalidaSabado = ss;
+        emp.TrabajaSabado = filaTrabajaSabado;
+        emp.CodigoEmpleado = filaCodigoEmpleado;
 
         await DB.SaveChangesAsync();
+        filaEditandoId = 0;
         await CargarEmpleados();
-        mostrarForm = false;
-        mensaje = "Empleado guardado correctamente.";
+        mensaje = "Cambios guardados correctamente.";
     }
 
-    private void EditarEmpleado(Empleado emp)
+    private void CancelarFila()
+    {
+        filaEditandoId = 0;
+    }
+
+    // ── Modal completo ──────────────────────────────────────
+    private void AbrirModal(Empleado emp)
     {
         empleadoEditando = new Empleado
         {
@@ -364,8 +517,34 @@
             TrabajaSabado = emp.TrabajaSabado,
             Activo = emp.Activo
         };
-        mostrarForm = true;
-        mensaje = string.Empty;
+        mostrarModal = true;
+    }
+
+    private void NuevoEmpleado()
+    {
+        empleadoEditando = new Empleado();
+        mostrarModal = true;
+    }
+
+    private void CerrarModal()
+    {
+        mostrarModal = false;
+        empleadoEditando = null;
+    }
+
+    private async Task GuardarModal()
+    {
+        if (empleadoEditando == null) return;
+
+        if (empleadoEditando.Id == 0)
+            DB.Empleados.Add(empleadoEditando);
+        else
+            DB.Empleados.Update(empleadoEditando);
+
+        await DB.SaveChangesAsync();
+        await CargarEmpleados();
+        CerrarModal();
+        mensaje = "Empleado guardado correctamente.";
     }
 
     private async Task EliminarEmpleado(int id)
@@ -379,21 +558,20 @@
         }
     }
 
+    // ── Importación CSV ─────────────────────────────────────
     private void ArchivoSeleccionado(InputFileChangeEventArgs e)
     {
         archivoSeleccionado = e.File;
         archivoListo = true;
-        mensajeImport = $"Archivo seleccionado: {e.File.Name}. Presiona Procesar CSV.";
+        mensajeImport = $"Archivo: {e.File.Name}. Presiona Procesar CSV.";
         StateHasChanged();
     }
 
     private async Task ProcesarArchivo()
     {
         if (archivoSeleccionado == null) return;
-
-        importando = true;
+        mensajeImport = "Procesando...";
         previstaImport.Clear();
-        mensajeImport = "Procesando archivo...";
         StateHasChanged();
 
         try
@@ -402,63 +580,42 @@
             using var memStream = new MemoryStream();
             await streamOriginal.CopyToAsync(memStream);
             memStream.Position = 0;
-
             previstaImport = ImportService.ParsearCsvEmpleados(memStream);
-
             mensajeImport = previstaImport.Count == 0
-                ? "No se detectaron empleados. Verifica el formato del archivo."
-                : $"Se detectaron {previstaImport.Count} empleados. Revisa la vista previa.";
+                ? "No se detectaron empleados."
+                : $"Se detectaron {previstaImport.Count} empleados.";
         }
-        catch (Exception ex)
-        {
-            mensajeImport = $"Error: {ex.Message}";
-        }
+        catch (Exception ex) { mensajeImport = $"Error: {ex.Message}"; }
 
-        importando = false;
         archivoListo = false;
         StateHasChanged();
     }
 
     private async Task ConfirmarImportCsv()
     {
-        int nuevos = 0;
-        int reactivados = 0;
-        int omitidos = 0;
+        int nuevos = 0, reactivados = 0, omitidos = 0;
 
         foreach (var emp in previstaImport)
         {
-            // Buscar si existe incluyendo inactivos
             var existente = await DB.Empleados.FirstOrDefaultAsync(e =>
                 e.DUI == emp.DUI || e.Nombre == emp.Nombre);
 
             if (existente == null)
             {
+                emp.TrabajaSabado = true;
                 DB.Empleados.Add(emp);
                 nuevos++;
             }
             else if (!existente.Activo)
             {
-                // Reactivar y actualizar datos
                 existente.Activo = true;
                 existente.Nombre = emp.Nombre;
-                existente.DUI = emp.DUI;
                 existente.Departamento = emp.Departamento;
                 existente.Cargo = emp.Cargo;
-                existente.Correo = emp.Correo;
-                existente.Telefono = emp.Telefono;
-                existente.Salario = emp.Salario;
-                existente.TipoContrato = emp.TipoContrato;
-                existente.FechaIngreso = emp.FechaIngreso;
-                existente.FechaNacimiento = emp.FechaNacimiento;
-                existente.CargoAcademico = emp.CargoAcademico;
-                existente.Direccion = emp.Direccion;
-                existente.Genero = emp.Genero;
+                existente.TrabajaSabado = true;
                 reactivados++;
             }
-            else
-            {
-                omitidos++;
-            }
+            else { omitidos++; }
         }
 
         await DB.SaveChangesAsync();
