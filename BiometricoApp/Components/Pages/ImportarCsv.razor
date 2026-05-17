@@ -1,0 +1,219 @@
+﻿@page "/importar"
+@using BiometricoApp.Models
+@using BiometricoApp.Data
+@using BiometricoApp.Services
+@using Microsoft.EntityFrameworkCore
+@inject AppDbContext DB
+@inject CsvParserService Parser
+@rendermode InteractiveServer
+
+<PageTitle>Importar CSV Biométrico</PageTitle>
+
+<div style="padding:1rem;">
+    <h2>Importar CSV Biométrico</h2>
+
+    <div style="background:#f5f5f5; padding:1rem; border-radius:8px; margin-bottom:1rem;">
+        <label style="font-weight:500;">Selecciona el archivo CSV del biométrico:</label>
+        <br /><br />
+        <InputFile OnChange="CargarArchivo" accept=".csv,.txt" />
+    </div>
+
+    @if (procesando)
+    {
+        <p style="color:#1a73e8;">Procesando archivo...</p>
+    }
+
+    @if (bloques.Count > 0)
+    {
+        <div style="margin-bottom:1rem;">
+            <h4>Empleados detectados en el archivo: @bloques.Count</h4>
+
+            @foreach (var bloque in bloques)
+            {
+                <div style="background:white; border:1px solid #ddd; border-radius:8px; padding:1rem; margin-bottom:1rem;">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <div>
+                            <strong>@bloque.Nombre</strong>
+                            <span style="color:#666; margin-left:1rem;">@bloque.Departamento</span>
+                            <span style="background:#e8f0fe; color:#1a73e8; padding:2px 8px; border-radius:4px; font-size:12px; margin-left:0.5rem;">
+                                @bloque.CodigoEmpleado
+                            </span>
+                        </div>
+                        <div>
+                            @if (bloque.EmpleadoEnBD != null)
+                            {
+                                <span style="color:green;">✓ Encontrado en BD</span>
+                            }
+                            else
+                            {
+                                <span style="color:#e53935;">✗ No encontrado en BD</span>
+                            }
+                        </div>
+                    </div>
+
+                    <div style="margin-top:0.5rem; font-size:13px; color:#555;">
+                        @bloque.Registros.Count registros detectados —
+                        Período: @bloque.Registros.Min(r => r.Fecha).ToString("dd/MM/yyyy")
+                        al @bloque.Registros.Max(r => r.Fecha).ToString("dd/MM/yyyy")
+                    </div>
+
+                    <table style="width:100%; border-collapse:collapse; font-size:13px; margin-top:0.5rem;">
+                        <thead>
+                            <tr style="background:#f0f0f0;">
+                                <th style="padding:4px 8px; text-align:left;">Fecha</th>
+                                <th style="padding:4px 8px; text-align:left;">Día</th>
+                                <th style="padding:4px 8px; text-align:left;">Entrada</th>
+                                <th style="padding:4px 8px; text-align:left;">Salida</th>
+                                <th style="padding:4px 8px; text-align:left;">Tipo</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var reg in bloque.Registros)
+                            {
+                                <tr style="border-bottom:1px solid #eee;">
+                                    <td style="padding:4px 8px;">@reg.Fecha.ToString("dd/MM/yyyy")</td>
+                                    <td style="padding:4px 8px;">@ObtenerDia(reg.Fecha)</td>
+                                    <td style="padding:4px 8px;">@(reg.HoraEntrada?.ToString("HH:mm") ?? "-")</td>
+                                    <td style="padding:4px 8px;">@(reg.HoraSalida?.ToString("HH:mm") ?? "-")</td>
+                                    <td style="padding:4px 8px;">@reg.TipoLinea</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+
+            <div style="margin-top:1rem;">
+                <button @onclick="ConfirmarImportacion"
+                        style="padding:0.5rem 1.5rem; background:#1a73e8; color:white; border:none; border-radius:6px; cursor:pointer; margin-right:0.5rem;">
+                    Confirmar importación
+                </button>
+                <button @onclick="Limpiar"
+                        style="padding:0.5rem 1.5rem; background:#ccc; border:none; border-radius:6px; cursor:pointer;">
+                    Cancelar
+                </button>
+            </div>
+        </div>
+    }
+
+    @if (!string.IsNullOrEmpty(mensaje))
+    {
+        <div style="padding:0.75rem 1rem; border-radius:6px; margin-top:1rem;
+            background:@(exito ? "#e6f4ea" : "#fce8e6");
+            color:@(exito ? "#137333" : "#c5221f");">
+            @mensaje
+        </div>
+    }
+</div>
+
+@code {
+    private List<BloqueEmpleado> bloques = new();
+    private bool procesando = false;
+    private string mensaje = string.Empty;
+    private bool exito = false;
+
+    private class BloqueEmpleado
+    {
+        public string CodigoEmpleado { get; set; } = string.Empty;
+        public string Nombre { get; set; } = string.Empty;
+        public string Departamento { get; set; } = string.Empty;
+        public List<RegistroBiometrico> Registros { get; set; } = new();
+        public Empleado? EmpleadoEnBD { get; set; }
+    }
+
+    private async Task CargarArchivo(InputFileChangeEventArgs e)
+    {
+        procesando = true;
+        mensaje = string.Empty;
+        bloques.Clear();
+
+        try
+        {
+            var archivo = e.File;
+            using var stream = archivo.OpenReadStream(maxAllowedSize: 10 * 1024 * 1024);
+            var resultados = Parser.ParsearCsv(stream);
+
+            foreach (var (codigo, nombre, departamento, registros) in resultados)
+            {
+                if (registros.Count == 0) continue;
+
+                var empleado = await DB.Empleados
+                    .FirstOrDefaultAsync(emp =>
+                        emp.CodigoEmpleado == codigo ||
+                        emp.Nombre.ToLower().Contains(nombre.ToLower().Substring(0, Math.Min(6, nombre.Length))));
+
+                bloques.Add(new BloqueEmpleado
+                {
+                    CodigoEmpleado = codigo,
+                    Nombre = nombre,
+                    Departamento = departamento,
+                    Registros = registros,
+                    EmpleadoEnBD = empleado
+                });
+            }
+        }
+        catch (Exception ex)
+        {
+            mensaje = $"Error al procesar el archivo: {ex.Message}";
+            exito = false;
+        }
+
+        procesando = false;
+    }
+
+    private async Task ConfirmarImportacion()
+    {
+        int importados = 0;
+        int omitidos = 0;
+
+        foreach (var bloque in bloques.Where(b => b.EmpleadoEnBD != null))
+        {
+            foreach (var reg in bloque.Registros)
+            {
+                // Evitar duplicados por empleado + fecha
+                bool existe = await DB.RegistrosBiometricos.AnyAsync(r =>
+                    r.EmpleadoId == bloque.EmpleadoEnBD!.Id &&
+                    r.Fecha == reg.Fecha);
+
+                if (!existe)
+                {
+                    reg.EmpleadoId = bloque.EmpleadoEnBD!.Id;
+                    reg.ArchivoOrigen = "importacion";
+                    DB.RegistrosBiometricos.Add(reg);
+                    importados++;
+                }
+                else
+                {
+                    omitidos++;
+                }
+            }
+        }
+
+        await DB.SaveChangesAsync();
+
+        exito = true;
+        mensaje = $"Importación completada: {importados} registros guardados, {omitidos} duplicados omitidos.";
+        bloques.Clear();
+    }
+
+    private void Limpiar()
+    {
+        bloques.Clear();
+        mensaje = string.Empty;
+    }
+
+    private string ObtenerDia(DateOnly fecha)
+    {
+        return fecha.DayOfWeek switch
+        {
+            DayOfWeek.Monday => "Lunes",
+            DayOfWeek.Tuesday => "Martes",
+            DayOfWeek.Wednesday => "Miércoles",
+            DayOfWeek.Thursday => "Jueves",
+            DayOfWeek.Friday => "Viernes",
+            DayOfWeek.Saturday => "Sábado",
+            DayOfWeek.Sunday => "Domingo",
+            _ => ""
+        };
+    }
+}
