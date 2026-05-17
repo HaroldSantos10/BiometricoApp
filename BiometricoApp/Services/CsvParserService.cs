@@ -20,13 +20,11 @@ public class CsvParserService
         int i = 0;
         while (i < lineas.Count)
         {
-            // Detectar línea de Identificación: ;;Identificación:;;HSGEMP130;...
             if (ContieneCampo(lineas[i], "Identificaci"))
             {
                 var partes = lineas[i].Split(';');
                 string codigo = partes.Length > 4 ? partes[4].Trim() : string.Empty;
 
-                // Buscar nombre en las siguientes líneas
                 string nombre = string.Empty;
                 string departamento = string.Empty;
 
@@ -45,21 +43,18 @@ public class CsvParserService
                     }
                 }
 
-                // Buscar línea de encabezado de datos (Fecha;;Horario;Linea;...)
                 int j = i + 1;
                 while (j < lineas.Count && !lineas[j].StartsWith("Fecha"))
                     j++;
+                j++;
 
-                j++; // saltar encabezado
-
-                var registros = new List<RegistroBiometrico>();
+                // Diccionario: fecha → registro
                 var registrosPorFecha = new Dictionary<DateOnly, RegistroBiometrico>();
 
                 while (j < lineas.Count)
                 {
                     var linea = lineas[j].TrimEnd('\r').Trim();
 
-                    // Fin de bloque: nueva identificación o línea de hospital
                     if (ContieneCampo(linea, "Identificaci") ||
                         ContieneCampo(linea, "Hospital San Gabriel"))
                         break;
@@ -69,56 +64,66 @@ public class CsvParserService
                     var cols = linea.Split(';');
                     if (cols.Length < 4) { j++; continue; }
 
-                    // Columna 1 = fecha (dd/MM/yyyy)
-                    // Columna 3 = tipo (AU, E/S, ST)
-                    // Columna 4 = entrada (puede incluir fecha: dd/MM/yyyy HH:mm)
-                    // Columna 5 = salida (puede incluir fecha: dd/MM/yyyy HH:mm)
-
-                    string fechaStr = cols.Length > 1 ? cols[1].Trim() : string.Empty;
+                    string fechaFilaStr = cols.Length > 1 ? cols[1].Trim() : string.Empty;
                     string tipo = cols.Length > 3 ? cols[3].Trim() : string.Empty;
                     string entradaStr = cols.Length > 4 ? cols[4].Trim() : string.Empty;
                     string salidaStr = cols.Length > 5 ? cols[5].Trim() : string.Empty;
 
-                    if (!DateOnly.TryParseExact(fechaStr, "dd/MM/yyyy",
+                    if (!DateOnly.TryParseExact(fechaFilaStr, "dd/MM/yyyy",
                         System.Globalization.CultureInfo.InvariantCulture,
-                        System.Globalization.DateTimeStyles.None, out DateOnly fecha))
+                        System.Globalization.DateTimeStyles.None, out DateOnly fechaFila))
                     { j++; continue; }
 
-                    // Ignorar ausencias
                     if (tipo == "AU") { j++; continue; }
 
-                    // Extraer solo la hora de strings como "01/04/2026 07:41"
-                    TimeOnly? entrada = ExtraerHora(entradaStr);
-                    TimeOnly? salida = ExtraerHora(salidaStr);
+                    // Extraer hora Y fecha real de cada marcación
+                    var (horaEntrada, fechaEntrada) = ExtraerFechaHora(entradaStr);
+                    var (horaSalida, fechaSalida) = ExtraerFechaHora(salidaStr);
 
-                    // Agrupar por fecha — acumular entrada y salida
-                    if (!registrosPorFecha.TryGetValue(fecha, out var reg))
+                    // Usar fecha real si está disponible, si no usar fecha de la fila
+                    DateOnly fechaEntradaReal = fechaEntrada ?? fechaFila;
+                    DateOnly fechaSalidaReal = fechaSalida ?? fechaFila;
+
+                    // Registrar entrada en su fecha real
+                    if (horaEntrada.HasValue)
                     {
-                        reg = new RegistroBiometrico
+                        if (!registrosPorFecha.TryGetValue(fechaEntradaReal, out var regEnt))
                         {
-                            Fecha = fecha,
-                            TipoLinea = tipo,
-                            EsTurnoNocturno = tipo == "E/S"
-                        };
-                        registrosPorFecha[fecha] = reg;
+                            regEnt = new RegistroBiometrico
+                            {
+                                Fecha = fechaEntradaReal,
+                                TipoLinea = tipo,
+                                EsTurnoNocturno = tipo == "E/S"
+                            };
+                            registrosPorFecha[fechaEntradaReal] = regEnt;
+                        }
+                        // Tomar la entrada más temprana del día
+                        if (!regEnt.HoraEntrada.HasValue || horaEntrada.Value < regEnt.HoraEntrada.Value)
+                            regEnt.HoraEntrada = horaEntrada;
                     }
 
-                    // Tomar la entrada más temprana y la salida más tardía
-                    if (entrada.HasValue)
+                    // Registrar salida en su fecha real
+                    if (horaSalida.HasValue)
                     {
-                        if (!reg.HoraEntrada.HasValue || entrada.Value < reg.HoraEntrada.Value)
-                            reg.HoraEntrada = entrada;
-                    }
-                    if (salida.HasValue)
-                    {
-                        if (!reg.HoraSalida.HasValue || salida.Value > reg.HoraSalida.Value)
-                            reg.HoraSalida = salida;
+                        if (!registrosPorFecha.TryGetValue(fechaSalidaReal, out var regSal))
+                        {
+                            regSal = new RegistroBiometrico
+                            {
+                                Fecha = fechaSalidaReal,
+                                TipoLinea = tipo,
+                                EsTurnoNocturno = tipo == "E/S"
+                            };
+                            registrosPorFecha[fechaSalidaReal] = regSal;
+                        }
+                        // Tomar la salida más tardía del día
+                        if (!regSal.HoraSalida.HasValue || horaSalida.Value > regSal.HoraSalida.Value)
+                            regSal.HoraSalida = horaSalida;
                     }
 
                     j++;
                 }
 
-                registros = registrosPorFecha.Values
+                var registros = registrosPorFecha.Values
                     .OrderBy(r => r.Fecha)
                     .ToList();
 
@@ -136,23 +141,36 @@ public class CsvParserService
         return resultado;
     }
 
-    private TimeOnly? ExtraerHora(string valor)
+    private (TimeOnly? hora, DateOnly? fecha) ExtraerFechaHora(string valor)
     {
-        if (string.IsNullOrWhiteSpace(valor)) return null;
+        if (string.IsNullOrWhiteSpace(valor)) return (null, null);
 
-        // Formato: "dd/MM/yyyy HH:mm" → extraer solo HH:mm
-        var partes = valor.Trim().Split(' ');
-        string horaStr = partes.Length > 1 ? partes[1].Trim() : partes[0].Trim();
+        valor = valor.Trim();
+        var partes = valor.Split(' ');
 
-        if (TimeOnly.TryParse(horaStr, out var hora))
-            return hora;
+        if (partes.Length >= 2)
+        {
+            DateOnly? fecha = null;
+            if (DateOnly.TryParseExact(partes[0].Trim(), "dd/MM/yyyy",
+                System.Globalization.CultureInfo.InvariantCulture,
+                System.Globalization.DateTimeStyles.None, out var f))
+                fecha = f;
 
-        return null;
+            TimeOnly? hora = null;
+            if (TimeOnly.TryParse(partes[1].Trim(), out var h))
+                hora = h;
+
+            return (hora, fecha);
+        }
+
+        if (TimeOnly.TryParse(partes[0].Trim(), out var soloHora))
+            return (soloHora, null);
+
+        return (null, null);
     }
 
     private bool ContieneCampo(string linea, string campo)
     {
-        // Buscar en versión limpia sin acentos problemáticos
         return linea.Contains(campo, StringComparison.OrdinalIgnoreCase) ||
                linea.Replace("Ã³", "o").Replace("Ã©", "e").Replace("Ã\u0081", "A")
                     .Contains(campo, StringComparison.OrdinalIgnoreCase);

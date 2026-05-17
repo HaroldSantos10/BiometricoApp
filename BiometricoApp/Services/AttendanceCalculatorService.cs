@@ -37,7 +37,6 @@ public class AttendanceCalculatorService
     {
         var resultado = new ResultadoEmpleado { Empleado = empleado };
 
-        // Agrupar por fecha y eliminar duplicados
         var porFecha = registros
             .GroupBy(r => r.Fecha)
             .OrderBy(g => g.Key);
@@ -48,16 +47,64 @@ public class AttendanceCalculatorService
             var diaSemana = fecha.DayOfWeek;
             var regs = grupo.ToList();
 
-            // Determinar entrada y salida del día
-            var entrada = regs
+            var horaEntradaEsperada = diaSemana == DayOfWeek.Saturday
+                ? empleado.HoraEntradaSabado : empleado.HoraEntrada;
+            var horaSalidaEsperada = diaSemana == DayOfWeek.Saturday
+                ? empleado.HoraSalidaSabado : empleado.HoraSalida;
+
+            TimeOnly? entrada = regs
                 .Where(r => r.HoraEntrada.HasValue)
                 .OrderBy(r => r.HoraEntrada)
                 .FirstOrDefault()?.HoraEntrada;
 
-            var salida = regs
+            TimeOnly? salida = regs
                 .Where(r => r.HoraSalida.HasValue)
                 .OrderByDescending(r => r.HoraSalida)
                 .FirstOrDefault()?.HoraSalida;
+
+            // Para empleados no nocturnos: corregir marcaciones mal asignadas
+            if (!empleado.TurnoNocturno)
+            {
+                // Caso: entrada y salida son iguales → duplicado, asumir entrada de BD
+                if (entrada.HasValue && salida.HasValue && entrada.Value == salida.Value)
+                {
+                    var hora = entrada.Value;
+                    if (hora.Hour >= 12)
+                    {
+                        // Es una marcación PM → es salida, asumir entrada de BD
+                        salida = hora;
+                        entrada = null;
+                    }
+                    else
+                    {
+                        // Es una marcación AM → es entrada, asumir salida de BD
+                        entrada = hora;
+                        salida = null;
+                    }
+                }
+
+                // Caso: solo entrada pero es PM → en realidad es salida
+                if (entrada.HasValue && !salida.HasValue && entrada.Value.Hour >= 12)
+                {
+                    salida = entrada;
+                    entrada = null;
+                }
+
+                // Caso: solo salida pero es AM → en realidad es entrada
+                if (salida.HasValue && !entrada.HasValue && salida.Value.Hour < 12)
+                {
+                    entrada = salida;
+                    salida = null;
+                }
+
+                // Caso: entrada > salida → intercambiar (error biométrico)
+                if (entrada.HasValue && salida.HasValue && entrada.Value > salida.Value)
+                {
+                    var temp = entrada;
+                    entrada = salida;
+                    salida = temp;
+                }
+            }
 
             var dia = new ResultadoDia
             {
@@ -71,15 +118,14 @@ public class AttendanceCalculatorService
 
             if (diaSemana == DayOfWeek.Sunday)
             {
-                // Domingo: registrar todo como extra
                 if (entrada.HasValue && salida.HasValue)
                 {
                     dia.MinutosExtraDespues = (int)(salida.Value.ToTimeSpan() - entrada.Value.ToTimeSpan()).TotalMinutes;
                     dia.Observacion = "Trabajo en domingo";
                 }
-                else if (entrada.HasValue)
+                else if (entrada.HasValue || salida.HasValue)
                 {
-                    dia.Observacion = "Domingo - solo entrada registrada";
+                    dia.Observacion = "Domingo - registro incompleto";
                 }
             }
             else if (diaSemana == DayOfWeek.Saturday)

@@ -15,7 +15,7 @@
     <div style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:1000; display:flex; align-items:center; justify-content:center;">
         <div style="background:white; border-radius:12px; padding:2rem; width:90%; max-width:700px; max-height:90vh; overflow-y:auto;">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
-                <h3 style="margin:0;">Editar Empleado</h3>
+                <h3 style="margin:0;">@(empleadoEditando.Id == 0 ? "Nuevo Empleado" : "Editar Empleado")</h3>
                 <button @onclick="CerrarModal" style="background:none; border:none; font-size:1.5rem; cursor:pointer; color:#666;">✕</button>
             </div>
 
@@ -116,6 +116,12 @@
                                    style="width:100%; padding:0.5rem; margin-top:4px; border:1px solid #ddd; border-radius:6px;" />
                         </div>
                     }
+                    <div style="grid-column:span 2; display:flex; align-items:center; gap:8px; padding:0.5rem 0; background:#fff3e0; border-radius:6px; padding:0.75rem;">
+                        <input type="checkbox" @bind="empleadoEditando.TurnoNocturno" id="modalNocturno" style="width:18px; height:18px; cursor:pointer;" />
+                        <label for="modalNocturno" style="cursor:pointer; font-weight:500; color:#e65100;">
+                            ⚠️ Turno nocturno real (solo marcar si trabaja de noche legítimamente)
+                        </label>
+                    </div>
                 </div>
             </div>
 
@@ -262,6 +268,7 @@
                     <th style="padding:8px; text-align:center;">Ent. Sáb</th>
                     <th style="padding:8px; text-align:center;">Sal. Sáb</th>
                     <th style="padding:8px; text-align:center;">Sábado</th>
+                    <th style="padding:8px; text-align:center;">Nocturno</th>
                     <th style="padding:8px; text-align:center;">Código Bio.</th>
                     <th style="padding:8px; text-align:center;">Acciones</th>
                 </tr>
@@ -272,9 +279,7 @@
                     @if (filaEditandoId == emp.Id)
                     {
                         <tr style="background:#fffde7; border-bottom:1px solid #ddd;">
-                            <td style="padding:4px 8px;">
-                                <span style="font-size:13px;">@emp.Nombre</span>
-                            </td>
+                            <td style="padding:4px 8px; font-size:13px;">@emp.Nombre</td>
                             <td style="padding:4px 8px;">@emp.Departamento</td>
                             <td style="padding:4px 8px;">@emp.Cargo</td>
                             <td style="padding:4px 8px; text-align:center;">
@@ -299,6 +304,9 @@
                             </td>
                             <td style="padding:4px 8px; text-align:center;">
                                 <input type="checkbox" @bind="filaTrabajaSabado" style="width:16px; height:16px;" />
+                            </td>
+                            <td style="padding:4px 8px; text-align:center;">
+                                <input type="checkbox" @bind="filaTurnoNocturno" style="width:16px; height:16px;" />
                             </td>
                             <td style="padding:4px 8px; text-align:center;">
                                 <input @bind="filaCodigoEmpleado"
@@ -334,6 +342,16 @@
                                 </span>
                             </td>
                             <td style="padding:8px; text-align:center;">
+                                @if (emp.TurnoNocturno)
+                                {
+                                    <span style="background:#fff3e0; color:#e65100; padding:2px 8px; border-radius:12px; font-size:12px;">🌙 Sí</span>
+                                }
+                                else
+                                {
+                                    <span style="color:#aaa; font-size:12px;">—</span>
+                                }
+                            </td>
+                            <td style="padding:8px; text-align:center;">
                                 @if (!string.IsNullOrEmpty(emp.CodigoEmpleado))
                                 {
                                     <span style="background:#e8f0fe; color:#1a73e8; padding:2px 8px; border-radius:4px; font-size:12px;">
@@ -346,18 +364,15 @@
                                 }
                             </td>
                             <td style="padding:8px; text-align:center; white-space:nowrap;">
-                                <button @onclick="() => EditarFila(emp)"
-                                        title="Edición rápida"
+                                <button @onclick="() => EditarFila(emp)" title="Edición rápida"
                                         style="padding:4px 8px; background:#f0a500; color:white; border:none; border-radius:4px; cursor:pointer; margin-right:4px; font-size:12px;">
                                     ✏️
                                 </button>
-                                <button @onclick="() => AbrirModal(emp)"
-                                        title="Edición completa"
+                                <button @onclick="() => AbrirModal(emp)" title="Edición completa"
                                         style="padding:4px 8px; background:#1a73e8; color:white; border:none; border-radius:4px; cursor:pointer; margin-right:4px; font-size:12px;">
                                     📋
                                 </button>
-                                <button @onclick="() => EliminarEmpleado(emp.Id)"
-                                        title="Eliminar"
+                                <button @onclick="() => EliminarEmpleado(emp.Id)" title="Eliminar"
                                         style="padding:4px 8px; background:#e53935; color:white; border:none; border-radius:4px; cursor:pointer; font-size:12px;">
                                     🗑️
                                 </button>
@@ -377,8 +392,6 @@
     private string filtroNombre = string.Empty;
     private int filaHover = 0;
 
-
-    // filtro empleados
     private IEnumerable<Empleado> EmpleadosFiltrados => empleados
         .Where(e =>
             (string.IsNullOrEmpty(filtroNombre) ||
@@ -387,13 +400,11 @@
              e.Departamento == filtroDepartamento))
         .ToList();
 
-    // filtro departamentos
     private IEnumerable<string> Departamentos => empleados
         .Select(e => e.Departamento)
         .Where(d => !string.IsNullOrEmpty(d))
         .Distinct()
         .OrderBy(d => d);
-
 
     // Edición inline
     private int filaEditandoId = 0;
@@ -402,9 +413,10 @@
     private string filaEntradaSabStr = string.Empty;
     private string filaSalidaSabStr = string.Empty;
     private bool filaTrabajaSabado = false;
+    private bool filaTurnoNocturno = false;
     private string filaCodigoEmpleado = string.Empty;
 
-    // Modal completo
+    // Modal
     private bool mostrarModal = false;
     private Empleado? empleadoEditando;
 
@@ -439,7 +451,7 @@
         set { if (empleadoEditando != null && DateOnly.TryParse(value, out var d)) empleadoEditando.FechaNacimiento = d; }
     }
 
-    // Importación CSV
+    // Importación
     private List<Empleado> previstaImport = new();
     private bool archivoListo = false;
     private string mensajeImport = string.Empty;
@@ -452,10 +464,13 @@
 
     private async Task CargarEmpleados()
     {
-        empleados = await DB.Empleados.Where(e => e.Activo).OrderBy(e => e.Departamento).ThenBy(e => e.Nombre).ToListAsync();
+        empleados = await DB.Empleados
+            .Where(e => e.Activo)
+            .OrderBy(e => e.Departamento)
+            .ThenBy(e => e.Nombre)
+            .ToListAsync();
     }
 
-    // ── Edición inline ──────────────────────────────────────
     private void EditarFila(Empleado emp)
     {
         filaEditandoId = emp.Id;
@@ -464,6 +479,7 @@
         filaEntradaSabStr = emp.HoraEntradaSabado.ToString("HH:mm");
         filaSalidaSabStr = emp.HoraSalidaSabado.ToString("HH:mm");
         filaTrabajaSabado = emp.TrabajaSabado;
+        filaTurnoNocturno = emp.TurnoNocturno;
         filaCodigoEmpleado = emp.CodigoEmpleado;
     }
 
@@ -477,6 +493,7 @@
         if (TimeOnly.TryParse(filaEntradaSabStr, out var es)) emp.HoraEntradaSabado = es;
         if (TimeOnly.TryParse(filaSalidaSabStr, out var ss)) emp.HoraSalidaSabado = ss;
         emp.TrabajaSabado = filaTrabajaSabado;
+        emp.TurnoNocturno = filaTurnoNocturno;
         emp.CodigoEmpleado = filaCodigoEmpleado;
 
         await DB.SaveChangesAsync();
@@ -485,12 +502,8 @@
         mensaje = "Cambios guardados correctamente.";
     }
 
-    private void CancelarFila()
-    {
-        filaEditandoId = 0;
-    }
+    private void CancelarFila() => filaEditandoId = 0;
 
-    // ── Modal completo ──────────────────────────────────────
     private void AbrirModal(Empleado emp)
     {
         empleadoEditando = new Empleado
@@ -515,6 +528,7 @@
             HoraEntradaSabado = emp.HoraEntradaSabado,
             HoraSalidaSabado = emp.HoraSalidaSabado,
             TrabajaSabado = emp.TrabajaSabado,
+            TurnoNocturno = emp.TurnoNocturno,
             Activo = emp.Activo
         };
         mostrarModal = true;
@@ -535,12 +549,10 @@
     private async Task GuardarModal()
     {
         if (empleadoEditando == null) return;
-
         if (empleadoEditando.Id == 0)
             DB.Empleados.Add(empleadoEditando);
         else
             DB.Empleados.Update(empleadoEditando);
-
         await DB.SaveChangesAsync();
         await CargarEmpleados();
         CerrarModal();
@@ -558,7 +570,6 @@
         }
     }
 
-    // ── Importación CSV ─────────────────────────────────────
     private void ArchivoSeleccionado(InputFileChangeEventArgs e)
     {
         archivoSeleccionado = e.File;
@@ -573,7 +584,6 @@
         mensajeImport = "Procesando...";
         previstaImport.Clear();
         StateHasChanged();
-
         try
         {
             using var streamOriginal = archivoSeleccionado.OpenReadStream(maxAllowedSize: 5 * 1024 * 1024);
@@ -586,7 +596,6 @@
                 : $"Se detectaron {previstaImport.Count} empleados.";
         }
         catch (Exception ex) { mensajeImport = $"Error: {ex.Message}"; }
-
         archivoListo = false;
         StateHasChanged();
     }
@@ -594,12 +603,10 @@
     private async Task ConfirmarImportCsv()
     {
         int nuevos = 0, reactivados = 0, omitidos = 0;
-
         foreach (var emp in previstaImport)
         {
             var existente = await DB.Empleados.FirstOrDefaultAsync(e =>
                 e.DUI == emp.DUI || e.Nombre == emp.Nombre);
-
             if (existente == null)
             {
                 emp.TrabajaSabado = true;
@@ -617,7 +624,6 @@
             }
             else { omitidos++; }
         }
-
         await DB.SaveChangesAsync();
         await CargarEmpleados();
         previstaImport.Clear();
