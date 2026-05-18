@@ -14,6 +14,9 @@ public class ResultadoDia
     public bool EsDomingo { get; set; }
     public bool EsSabado { get; set; }
     public string Observacion { get; set; } = string.Empty;
+
+    public int MinutosExtraAntesEfectivo => MinutosExtraAntes >= 20 ? MinutosExtraAntes : 0;
+    public int MinutosExtraDespuesEfectivo => MinutosExtraDespues >= 30 ? MinutosExtraDespues : 0;
 }
 
 public class ResultadoEmpleado
@@ -26,6 +29,10 @@ public class ResultadoEmpleado
     public int TotalMinutosDomingo => Dias.Where(d => d.EsDomingo).Sum(d => d.MinutosExtraAntes + d.MinutosExtraDespues);
     public int TotalMinutosExtra => TotalMinutosExtraAntes + TotalMinutosExtraDespues;
     public bool TieneTardanzasCriticas => TotalMinutosTarde > 15;
+
+    public int TotalMinutosExtraAntesEfectivo => Dias.Sum(d => d.MinutosExtraAntesEfectivo);
+    public int TotalMinutosExtraDespuesEfectivo => Dias.Sum(d => d.MinutosExtraDespuesEfectivo);
+    public int TotalMinutosExtraEfectivo => TotalMinutosExtraAntesEfectivo + TotalMinutosExtraDespuesEfectivo;
 }
 
 public class AttendanceCalculatorService

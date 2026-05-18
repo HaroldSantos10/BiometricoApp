@@ -45,35 +45,56 @@
 
     @if (resultado != null)
     {
+        <!-- Tarjetas resumen -->
         <div style="margin-bottom:1rem; display:flex; gap:1rem; flex-wrap:wrap;">
             <div style="background:white; border:1px solid #ddd; border-radius:8px; padding:1rem; min-width:150px; text-align:center;">
-                <div style="font-size:24px; font-weight:600; color:@(resultado.TieneTardanzasCriticas ? "#e53935" : "#137333");">
+                <div style="font-size:22px; font-weight:600; color:@(resultado.TieneTardanzasCriticas ? "#e53935" : "#137333");">
                     @AttendanceCalculatorService.FormatearMinutos(resultado.TotalMinutosTarde)
                 </div>
                 <div style="font-size:12px; color:#666; margin-top:4px;">Total tardanzas</div>
             </div>
+
             <div style="background:white; border:1px solid #ddd; border-radius:8px; padding:1rem; min-width:150px; text-align:center;">
-                <div style="font-size:24px; font-weight:600; color:#1a73e8;">
+                <div style="font-size:22px; font-weight:600; color:#1a73e8;">
                     @AttendanceCalculatorService.FormatearMinutos(resultado.TotalMinutosExtraAntes)
                 </div>
-                <div style="font-size:12px; color:#666; margin-top:4px;">Extra entrada</div>
+                <div style="font-size:12px; color:#666; margin-top:4px;">Extra entrada (total)</div>
             </div>
+
             <div style="background:white; border:1px solid #ddd; border-radius:8px; padding:1rem; min-width:150px; text-align:center;">
-                <div style="font-size:24px; font-weight:600; color:#1a73e8;">
+                <div style="font-size:22px; font-weight:600; color:#1a73e8;">
                     @AttendanceCalculatorService.FormatearMinutos(resultado.TotalMinutosExtraDespues)
                 </div>
-                <div style="font-size:12px; color:#666; margin-top:4px;">Extra salida</div>
+                <div style="font-size:12px; color:#666; margin-top:4px;">Extra salida (total)</div>
             </div>
-            <div style="background:white; border:1px solid #ddd; border-radius:8px; padding:1rem; min-width:150px; text-align:center;">
-                <div style="font-size:24px; font-weight:600; color:#f0a500;">
-                    @AttendanceCalculatorService.FormatearMinutos(resultado.TotalMinutosExtra)
+
+            <div style="background:#e8f5e9; border:1px solid #a5d6a7; border-radius:8px; padding:1rem; min-width:150px; text-align:center;">
+                <div style="font-size:22px; font-weight:600; color:#2e7d32;">
+                    @AttendanceCalculatorService.FormatearMinutos(resultado.TotalMinutosExtraAntesEfectivo)
                 </div>
-                <div style="font-size:12px; color:#666; margin-top:4px;">Total extra</div>
+                <div style="font-size:12px; color:#555; margin-top:4px;">Extra entrada efectiva</div>
+                <div style="font-size:11px; color:#888;">(≥20 min antes)</div>
             </div>
+
+            <div style="background:#e8f5e9; border:1px solid #a5d6a7; border-radius:8px; padding:1rem; min-width:150px; text-align:center;">
+                <div style="font-size:22px; font-weight:600; color:#2e7d32;">
+                    @AttendanceCalculatorService.FormatearMinutos(resultado.TotalMinutosExtraDespuesEfectivo)
+                </div>
+                <div style="font-size:12px; color:#555; margin-top:4px;">Extra salida efectiva</div>
+                <div style="font-size:11px; color:#888;">(≥30 min después)</div>
+            </div>
+
+            <div style="background:#e8f5e9; border:2px solid #43a047; border-radius:8px; padding:1rem; min-width:150px; text-align:center;">
+                <div style="font-size:22px; font-weight:600; color:#1b5e20;">
+                    @AttendanceCalculatorService.FormatearMinutos(resultado.TotalMinutosExtraEfectivo)
+                </div>
+                <div style="font-size:12px; color:#555; margin-top:4px; font-weight:600;">Total extra a compensar</div>
+            </div>
+
             @if (resultado.TotalMinutosDomingo > 0)
             {
                 <div style="background:#fff8e1; border:1px solid #ffe082; border-radius:8px; padding:1rem; min-width:150px; text-align:center;">
-                    <div style="font-size:24px; font-weight:600; color:#f57c00;">
+                    <div style="font-size:22px; font-weight:600; color:#f57c00;">
                         @AttendanceCalculatorService.FormatearMinutos(resultado.TotalMinutosDomingo)
                     </div>
                     <div style="font-size:12px; color:#666; margin-top:4px;">Extra domingos</div>
@@ -88,6 +109,13 @@
             </div>
         }
 
+        <!-- Leyenda -->
+        <div style="font-size:12px; color:#666; margin-bottom:0.75rem; display:flex; gap:1.5rem; flex-wrap:wrap;">
+            <span>🟦 Extra entrada/salida = minutos fuera del horario (informativo)</span>
+            <span>🟩 Efectivo = solo cuenta si ≥20 min antes o ≥30 min después</span>
+            <span style="color:#c5221f;">🟥 Tardanza acumulada supera 15 min</span>
+        </div>
+
         <div style="overflow-x:auto;">
             <table style="width:100%; border-collapse:collapse; font-size:13px;">
                 <thead>
@@ -97,8 +125,10 @@
                         <th style="padding:8px; text-align:center;">Entrada</th>
                         <th style="padding:8px; text-align:center;">Salida</th>
                         <th style="padding:8px; text-align:center;">Tardanza</th>
-                        <th style="padding:8px; text-align:center;">Extra entrada</th>
-                        <th style="padding:8px; text-align:center;">Extra salida</th>
+                        <th style="padding:8px; text-align:center; background:#1557b0;">Extra entrada</th>
+                        <th style="padding:8px; text-align:center; background:#1557b0;">Extra salida</th>
+                        <th style="padding:8px; text-align:center; background:#1b6e2e;">Ent. efectiva</th>
+                        <th style="padding:8px; text-align:center; background:#1b6e2e;">Sal. efectiva</th>
                         <th style="padding:8px; text-align:left;">Observación</th>
                     </tr>
                 </thead>
@@ -123,18 +153,12 @@
                                     <span style="background:#fff8e1; color:#f57c00; font-size:11px; padding:1px 6px; border-radius:4px; margin-left:4px;">DOM</span>
                                 }
                             </td>
-                            <td style="padding:8px; text-align:center;">
-                                @(dia.EntradaReal?.ToString("HH:mm") ?? "-")
-                            </td>
-                            <td style="padding:8px; text-align:center;">
-                                @(dia.SalidaReal?.ToString("HH:mm") ?? "-")
-                            </td>
+                            <td style="padding:8px; text-align:center;">@(dia.EntradaReal?.ToString("HH:mm") ?? "-")</td>
+                            <td style="padding:8px; text-align:center;">@(dia.SalidaReal?.ToString("HH:mm") ?? "-")</td>
                             <td style="padding:8px; text-align:center;">
                                 @if (dia.MinutosTarde > 0)
                                 {
-                                    <span style="color:#c5221f; font-weight:500;">
-                                        @AttendanceCalculatorService.FormatearMinutos(dia.MinutosTarde)
-                                    </span>
+                                    <span style="color:#c5221f; font-weight:500;">@AttendanceCalculatorService.FormatearMinutos(dia.MinutosTarde)</span>
                                 }
                                 else
                                 {
@@ -142,30 +166,48 @@
                                     <span>-</span>
                                 }
                             </td>
-                            <td style="padding:8px; text-align:center;">
+                            <td style="padding:8px; text-align:center; background:#f8faff;">
                                 @if (dia.MinutosExtraAntes > 0)
                                 {
-                                    <span style="color:#1a73e8; font-weight:500;">
-                                        @AttendanceCalculatorService.FormatearMinutos(dia.MinutosExtraAntes)
-                                    </span>
+                                    <span style="color:#1a73e8;">@AttendanceCalculatorService.FormatearMinutos(dia.MinutosExtraAntes)</span>
                                 }
                                 else
                                 {
 
-                                    <span>-</span>
+                                    <span style="color:#ccc;">-</span>
                                 }
                             </td>
-                            <td style="padding:8px; text-align:center;">
+                            <td style="padding:8px; text-align:center; background:#f8faff;">
                                 @if (dia.MinutosExtraDespues > 0)
                                 {
-                                    <span style="color:#1a73e8; font-weight:500;">
-                                        @AttendanceCalculatorService.FormatearMinutos(dia.MinutosExtraDespues)
-                                    </span>
+                                    <span style="color:#1a73e8;">@AttendanceCalculatorService.FormatearMinutos(dia.MinutosExtraDespues)</span>
                                 }
                                 else
                                 {
 
-                                    <span>-</span>
+                                    <span style="color:#ccc;">-</span>
+                                }
+                            </td>
+                            <td style="padding:8px; text-align:center; background:#f0fff4;">
+                                @if (dia.MinutosExtraAntesEfectivo > 0)
+                                {
+                                    <span style="color:#2e7d32; font-weight:500;">@AttendanceCalculatorService.FormatearMinutos(dia.MinutosExtraAntesEfectivo)</span>
+                                }
+                                else
+                                {
+
+                                    <span style="color:#ccc;">-</span>
+                                }
+                            </td>
+                            <td style="padding:8px; text-align:center; background:#f0fff4;">
+                                @if (dia.MinutosExtraDespuesEfectivo > 0)
+                                {
+                                    <span style="color:#2e7d32; font-weight:500;">@AttendanceCalculatorService.FormatearMinutos(dia.MinutosExtraDespuesEfectivo)</span>
+                                }
+                                else
+                                {
+
+                                    <span style="color:#ccc;">-</span>
                                 }
                             </td>
                             <td style="padding:8px; font-size:12px; color:#666;">@dia.Observacion</td>
@@ -178,11 +220,24 @@
                         <td style="padding:8px; text-align:center; color:@(resultado.TieneTardanzasCriticas ? "#e53935" : "#333");">
                             @AttendanceCalculatorService.FormatearMinutos(resultado.TotalMinutosTarde)
                         </td>
-                        <td style="padding:8px; text-align:center; color:#1a73e8;">
+                        <td style="padding:8px; text-align:center; color:#1a73e8; background:#f8faff;">
                             @AttendanceCalculatorService.FormatearMinutos(resultado.TotalMinutosExtraAntes)
                         </td>
-                        <td style="padding:8px; text-align:center; color:#1a73e8;">
+                        <td style="padding:8px; text-align:center; color:#1a73e8; background:#f8faff;">
                             @AttendanceCalculatorService.FormatearMinutos(resultado.TotalMinutosExtraDespues)
+                        </td>
+                        <td style="padding:8px; text-align:center; color:#2e7d32; background:#f0fff4;">
+                            @AttendanceCalculatorService.FormatearMinutos(resultado.TotalMinutosExtraAntesEfectivo)
+                        </td>
+                        <td style="padding:8px; text-align:center; color:#2e7d32; background:#f0fff4;">
+                            @AttendanceCalculatorService.FormatearMinutos(resultado.TotalMinutosExtraDespuesEfectivo)
+                        </td>
+                        <td style="padding:8px;"></td>
+                    </tr>
+                    <tr style="background:#e8f5e9; font-weight:700; border-top:1px solid #a5d6a7;">
+                        <td colspan="7" style="padding:8px; color:#1b5e20;">TOTAL EXTRA A COMPENSAR</td>
+                        <td colspan="2" style="padding:8px; text-align:center; color:#1b5e20; font-size:15px;">
+                            @AttendanceCalculatorService.FormatearMinutos(resultado.TotalMinutosExtraEfectivo)
                         </td>
                         <td style="padding:8px;"></td>
                     </tr>
