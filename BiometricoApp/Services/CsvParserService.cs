@@ -49,7 +49,7 @@ public class CsvParserService
                 j++;
 
                 // Diccionario: fecha → registro
-                var registrosPorFecha = new Dictionary<DateOnly, RegistroBiometrico>();
+                var marcacionesPorFecha = new Dictionary<DateOnly, (List<TimeOnly> Horas, string Tipo)>();
 
                 while (j < lineas.Count)
                 {
@@ -87,45 +87,57 @@ public class CsvParserService
                     // Registrar entrada en su fecha real
                     if (horaEntrada.HasValue)
                     {
-                        if (!registrosPorFecha.TryGetValue(fechaEntradaReal, out var regEnt))
-                        {
-                            regEnt = new RegistroBiometrico
-                            {
-                                Fecha = fechaEntradaReal,
-                                TipoLinea = tipo,
-                                EsTurnoNocturno = tipo == "E/S"
-                            };
-                            registrosPorFecha[fechaEntradaReal] = regEnt;
-                        }
-                        // Tomar la entrada más temprana del día
-                        if (!regEnt.HoraEntrada.HasValue || horaEntrada.Value < regEnt.HoraEntrada.Value)
-                            regEnt.HoraEntrada = horaEntrada;
+                        if (!marcacionesPorFecha.ContainsKey(fechaEntradaReal))
+                            marcacionesPorFecha[fechaEntradaReal] = (new List<TimeOnly>(), tipo);
+                        marcacionesPorFecha[fechaEntradaReal].Horas.Add(horaEntrada.Value);
                     }
 
-                    // Registrar salida en su fecha real
                     if (horaSalida.HasValue)
                     {
-                        if (!registrosPorFecha.TryGetValue(fechaSalidaReal, out var regSal))
-                        {
-                            regSal = new RegistroBiometrico
-                            {
-                                Fecha = fechaSalidaReal,
-                                TipoLinea = tipo,
-                                EsTurnoNocturno = tipo == "E/S"
-                            };
-                            registrosPorFecha[fechaSalidaReal] = regSal;
-                        }
-                        // Tomar la salida más tardía del día
-                        if (!regSal.HoraSalida.HasValue || horaSalida.Value > regSal.HoraSalida.Value)
-                            regSal.HoraSalida = horaSalida;
+                        if (!marcacionesPorFecha.ContainsKey(fechaSalidaReal))
+                            marcacionesPorFecha[fechaSalidaReal] = (new List<TimeOnly>(), tipo);
+                        marcacionesPorFecha[fechaSalidaReal].Horas.Add(horaSalida.Value);
                     }
 
                     j++;
                 }
 
-                var registros = registrosPorFecha.Values
-                    .OrderBy(r => r.Fecha)
-                    .ToList();
+                var registrosPorFecha = new Dictionary<DateOnly, RegistroBiometrico>();
+
+                foreach (var kvp in marcacionesPorFecha)
+                {
+                    var fecha = kvp.Key;
+                    var horas = kvp.Value.Horas.Distinct().OrderBy(h => h).ToList();
+                    var tipoRegistro = kvp.Value.Tipo;
+
+                    TimeOnly? entrada = null;
+                    TimeOnly? salida = null;
+
+                    if (horas.Count == 1)
+                    {
+                        var h = horas[0];
+                        if (h.Hour >= 12)
+                            entrada = h;
+                        else
+                            salida = h;
+                    }
+                    else
+                    {
+                        entrada = horas.First();
+                        salida = horas.Last();
+                    }
+
+                    registrosPorFecha[fecha] = new RegistroBiometrico
+                    {
+                        Fecha = fecha,
+                        TipoLinea = tipoRegistro,
+                        EsTurnoNocturno = false,
+                        HoraEntrada = entrada,
+                        HoraSalida = salida
+                    };
+                }
+
+                var registros = registrosPorFecha.Values.OrderBy(r => r.Fecha).ToList();
 
                 if (!string.IsNullOrEmpty(nombre))
                     resultado.Add((codigo, nombre, departamento, registros));

@@ -99,6 +99,14 @@
             </div>
         }
 
+        <div style="margin-bottom:1rem; display:flex; align-items:center; gap:8px;">
+            <input type="checkbox" @bind="reemplazarExistentes" id="reemplazar" style="width:16px; height:16px;" />
+            <label for="reemplazar" style="cursor:pointer; font-size:13px;">
+                Reemplazar registros existentes del mismo período
+                <span style="color:#e65100; font-size:12px;">(usa esto si reimportas para corregir datos)</span>
+            </label>
+        </div>
+
         <div style="margin-top:1rem; display:flex; gap:0.5rem;">
             <button @onclick="ConfirmarImportacion"
                     style="padding:0.5rem 1.5rem; background:#1a73e8; color:white; border:none; border-radius:6px; cursor:pointer;">
@@ -119,6 +127,7 @@
     private string mensaje = string.Empty;
     private bool exito = false;
     private IBrowserFile? archivoSeleccionado;
+    private bool reemplazarExistentes = false;
 
     private class BloqueEmpleado
     {
@@ -161,12 +170,20 @@
             {
                 if (registros.Count == 0) continue;
 
+                // Primero intentar por código biométrico exacto
                 var empleado = await DB.Empleados
-                    .Where(emp => emp.Activo)
-                    .FirstOrDefaultAsync(emp =>
-                        emp.CodigoEmpleado == codigo ||
-                        emp.Nombre.ToLower().Contains(
-                            nombre.ToLower().Substring(0, Math.Min(6, nombre.Length))));
+                    .Where(emp => emp.Activo && emp.CodigoEmpleado == codigo)
+                    .FirstOrDefaultAsync();
+
+                // Si no encontró por código, buscar por similitud de nombre completo
+                if (empleado == null && !string.IsNullOrEmpty(nombre))
+                {
+                    var todosActivos = await DB.Empleados
+                        .Where(emp => emp.Activo)
+                        .ToListAsync();
+
+                    empleado = BuscarMejorCoincidencia(nombre, todosActivos);
+                }
 
                 bloques.Add(new BloqueEmpleado
                 {
@@ -198,32 +215,45 @@
     {
         int importados = 0;
         int omitidos = 0;
+        int reemplazados = 0;
 
         foreach (var bloque in bloques.Where(b => b.EmpleadoEnBD != null))
         {
             foreach (var reg in bloque.Registros)
             {
-                bool existe = await DB.RegistrosBiometricos.AnyAsync(r =>
+                var existente = await DB.RegistrosBiometricos.FirstOrDefaultAsync(r =>
                     r.EmpleadoId == bloque.EmpleadoEnBD!.Id &&
                     r.Fecha == reg.Fecha);
 
-                if (!existe)
+                if (existente != null)
+                {
+                    if (reemplazarExistentes)
+                    {
+                        existente.HoraEntrada = reg.HoraEntrada;
+                        existente.HoraSalida = reg.HoraSalida;
+                        existente.TipoLinea = reg.TipoLinea;
+                        existente.EsTurnoNocturno = reg.EsTurnoNocturno;
+                        existente.ArchivoOrigen = archivoSeleccionado?.Name ?? "reimportacion";
+                        reemplazados++;
+                    }
+                    else
+                    {
+                        omitidos++;
+                    }
+                }
+                else
                 {
                     reg.EmpleadoId = bloque.EmpleadoEnBD!.Id;
                     reg.ArchivoOrigen = archivoSeleccionado?.Name ?? "importacion";
                     DB.RegistrosBiometricos.Add(reg);
                     importados++;
                 }
-                else
-                {
-                    omitidos++;
-                }
             }
         }
 
         await DB.SaveChangesAsync();
         exito = true;
-        mensaje = $"✓ {importados} registros guardados, {omitidos} duplicados omitidos.";
+        mensaje = $"✓ {importados} nuevos, {reemplazados} reemplazados, {omitidos} duplicados omitidos.";
         bloques.Clear();
         StateHasChanged();
     }
@@ -247,4 +277,56 @@
         DayOfWeek.Sunday => "Domingo",
         _ => ""
     };
+    private Empleado? BuscarMejorCoincidencia(string nombreCsv, List<Empleado> empleados)
+    {
+        var tokensCsv = NormalizarNombre(nombreCsv);
+        if (tokensCsv.Length == 0) return null;
+
+        Empleado? mejor = null;
+        double mejorPuntaje = 0;
+        const double UMBRAL_MINIMO = 0.60; // al menos 60% de palabras deben coincidir
+
+        foreach (var emp in empleados)
+        {
+            var tokensBd = NormalizarNombre(emp.Nombre);
+            if (tokensBd.Length == 0) continue;
+
+            // Contar cuántos tokens del CSV están en el nombre de BD y viceversa
+            int coincidencias = tokensCsv.Count(t => tokensBd.Contains(t));
+            int totalUnicos = tokensCsv.Union(tokensBd).Count();
+
+            double puntaje = (double)coincidencias / totalUnicos; // Jaccard similarity
+
+            // Bonus si el primer apellido coincide (suele ser el token más discriminador)
+            // En nombres hispanos, generalmente: Nombre1 [Nombre2] Apellido1 [Apellido2]
+            // El token más largo suele ser el apellido paterno
+            var apellidoCsv = tokensCsv.OrderByDescending(t => t.Length).FirstOrDefault();
+            var apellidoBd = tokensBd.OrderByDescending(t => t.Length).FirstOrDefault();
+            if (apellidoCsv != null && apellidoBd != null && apellidoCsv == apellidoBd)
+                puntaje += 0.3;
+
+            if (puntaje > mejorPuntaje)
+            {
+                mejorPuntaje = puntaje;
+                mejor = emp;
+            }
+        }
+
+        return mejorPuntaje >= UMBRAL_MINIMO ? mejor : null;
+    }
+
+    private string[] NormalizarNombre(string nombre)
+    {
+        return nombre
+            .ToLower()
+            .Normalize(System.Text.NormalizationForm.FormD)
+            // quitar acentos
+            .Where(c => System.Globalization.CharUnicodeInfo.GetUnicodeCategory(c)
+                        != System.Globalization.UnicodeCategory.NonSpacingMark)
+            .Aggregate(new System.Text.StringBuilder(), (sb, c) => { sb.Append(c); return sb; })
+            .ToString()
+            .Split(' ', StringSplitOptions.RemoveEmptyEntries)
+            .Where(t => t.Length > 2) // ignorar "de", "la", "del"
+            .ToArray();
+    }
 }
