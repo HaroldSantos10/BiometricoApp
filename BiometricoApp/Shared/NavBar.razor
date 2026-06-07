@@ -1,0 +1,15 @@
+﻿@inject NavigationManager Nav
+
+<nav style="background:#1a1f2e; padding:0.75rem 1.5rem; display:flex; align-items:center; gap:0.5rem; box-shadow:0 2px 8px rgba(0,0,0,0.3);">
+    <span style="color:white; font-weight:700; font-size:1rem; margin-right:1.5rem; letter-spacing:0.5px;">
+        🏥 BiométricoApp
+    </span>
+
+    <NavButton Href="/empleados" Icono="👥" Texto="Empleados" />
+    <NavButton Href="/importar"  Icono="📥" Texto="Importar"  />
+    <NavButton Href="/reporte"   Icono="📊" Texto="Reportes"  />
+</nav>
+
+@code {
+    // vacío, solo layout
+}

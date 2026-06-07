@@ -1,0 +1,111 @@
+﻿@media print {
+    body * {
+        visibility: hidden;
+    }
+
+    #seccion-imprimible,
+    #seccion-imprimible * {
+        visibility: visible;
+    }
+
+    #seccion-imprimible {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        padding: 0.3cm 0.5cm;
+    }
+
+    .no-print {
+        display: none !important;
+    }
+
+    @page {
+        margin: 0.5cm;
+        size: letter landscape;
+    }
+
+    table {
+        font-size: 9px !important;
+        border-collapse: collapse;
+        width: 100% !important;
+        table-layout: fixed;
+    }
+
+    th, td {
+        padding: 2px 3px !important;
+        overflow: hidden;
+        word-wrap: break-word;
+        text-align: center;
+    }
+
+    /* Anchos específicos por columna */
+    table th:nth-child(1), table td:nth-child(1) {
+        width: 72px;
+    }
+    /* Fecha */
+    table th:nth-child(2), table td:nth-child(2) {
+        width: 58px;
+    }
+    /* Día */
+    table th:nth-child(3), table td:nth-child(3) {
+        width: 44px;
+    }
+    /* Entrada */
+    table th:nth-child(4), table td:nth-child(4) {
+        width: 44px;
+    }
+    /* Salida */
+    table th:nth-child(5), table td:nth-child(5) {
+        width: 52px;
+    }
+    /* Tardanza */
+    table th:nth-child(6), table td:nth-child(6) {
+        width: 62px;
+    }
+    /* Extra entrada */
+    table th:nth-child(7), table td:nth-child(7) {
+        width: 62px;
+    }
+    /* Extra salida */
+    table th:nth-child(8), table td:nth-child(8) {
+        width: 62px;
+    }
+    /* Ent. efectiva */
+    table th:nth-child(9), table td:nth-child(9) {
+        width: 62px;
+    }
+    /* Sal. efectiva */
+    table th:nth-child(10), table td:nth-child(10) {
+        width: 110px; /* ← antes era auto */
+        text-align: left;
+        font-size: 8px !important;
+        word-wrap: break-word;
+        white-space: normal;
+    }
+    /* Observación */
+
+    /* Alinear columnas de texto a la izquierda */
+    table td:nth-child(1), table td:nth-child(2) {
+        text-align: left;
+    }
+
+    th {
+        background: #1a73e8 !important;
+        color: white !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+        font-size: 8px !important;
+    }
+
+    h4 {
+        font-size: 11px !important;
+        margin: 0 0 3px 0 !important;
+    }
+
+    /* Encabezado del reporte compacto */
+    #seccion-imprimible > div:first-child {
+        margin-bottom: 6px !important;
+        padding-bottom: 4px !important;
+    }
+}

@@ -8,6 +8,7 @@
     <ResourcePreloader />
     <link rel="stylesheet" href="@Assets["app.css"]" />
     <link rel="stylesheet" href="@Assets["BiometricoApp.styles.css"]" />
+    <link rel="stylesheet" href="css/print.css" />
     <ImportMap />
     <HeadOutlet @rendermode="InteractiveServer" />
 </head>
@@ -16,6 +17,14 @@
     <Routes @rendermode="InteractiveServer" />
     <ReconnectModal />
     <script src="@Assets["_framework/blazor.web.js"]"></script>
+    <script>
+        window.imprimirSeccion = function () {
+        var el = document.getElementById('seccion-imprimible');
+        if (el) el.style.display = 'block';
+        window.print();
+        if (el) el.style.display = 'none';
+        };
+    </script>
 </body>
 
 </html>

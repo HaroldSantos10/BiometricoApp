@@ -1,0 +1,19 @@
+﻿@inject NavigationManager Nav
+
+<a href="@Href"
+   style="display:flex; align-items:center; gap:6px; padding:0.45rem 1rem;
+    border-radius:6px; text-decoration:none; font-size:14px; font-weight:500;
+    transition:background 0.15s;
+    background:@(EsActiva ? "#2d6be4" : "transparent");
+    color:@(EsActiva ? "white" : "#aab4c8");">
+    <span>@Icono</span>
+    <span>@Texto</span>
+</a>
+
+@code {
+    [Parameter] public string Href { get; set; } = "";
+    [Parameter] public string Icono { get; set; } = "";
+    [Parameter] public string Texto { get; set; } = "";
+
+    bool EsActiva => Nav.Uri.Contains(Href, StringComparison.OrdinalIgnoreCase);
+}
